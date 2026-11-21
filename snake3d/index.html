@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0d0b17">
+<title>مار سه‌بعدی | Snake 3D</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 700px at 50% -10%,#1d1433 0%,#0d0b17 60%);color:#faf5ff;font:16px Tahoma,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+main{max-width:1120px;margin:auto;padding:20px}
+header,.hud,.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+header{margin-bottom:16px;flex-wrap:wrap}
+.brand{font:italic 900 27px Arial;letter-spacing:-1px;direction:ltr}
+.brand b{color:#4dff9e}
+.tag{color:#b8a9c9;font-size:12px;border:1px solid #392a4a;padding:8px 12px;border-radius:20px}
+.nav{display:flex;gap:8px}
+.nav a{font:700 12px Tahoma;color:#e6d6ff;text-decoration:none;border:1px solid #4a3560;padding:8px 12px;border-radius:20px;transition:.2s}
+.nav a:hover{background:#4dff9e;color:#0d0b17;border-color:#4dff9e}
+.game{position:relative;overflow:hidden;border:1px solid #473451;border-radius:22px;background:#0a0714;box-shadow:0 24px 70px #0009}
+canvas{display:block;width:100%;height:clamp(420px,68vh,690px);touch-action:none}
+.hud{position:absolute;top:14px;inset-inline:14px;pointer-events:none;direction:rtl}
+.stat{background:#130b20d9;border:1px solid #66416c;border-radius:12px;padding:8px 13px;min-width:82px;text-align:center;backdrop-filter:blur(6px)}
+.stat .label{color:#b8a9c9;font-size:11px}
+.stat strong{display:block;font:800 22px Arial;margin-top:2px;color:#fff;direction:ltr}
+.stat.gold strong{color:#ffd76a}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(#10091c66,#12091cd9);text-align:center;padding:56px 14px 100px;overflow:auto}
+.overlay[hidden]{display:none}
+.eyebrow{color:#4dff9e;font:700 11px Arial;letter-spacing:4px;direction:ltr}
+h1{font-size:clamp(34px,7.5vw,74px);line-height:1.05;margin:12px 0;text-shadow:0 0 38px #2bff8d66}
+.overlay p{color:#f1deff;line-height:1.9;margin:0 auto 18px;max-width:480px;font-size:14px}
+kbd{display:inline-block;background:#241a34;border:1px solid #4a3560;padding:2px 8px;border-radius:6px;color:#fff;direction:ltr;font:700 12px Arial;margin:0 2px}
+.btn{border:0;font:700 15px Tahoma;color:#07130d;background:#4dff9e;border-radius:12px;padding:13px 28px;cursor:pointer;box-shadow:0 0 26px #2bff8d55;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 0 36px #2bff8d88}
+.btn:active{transform:translateY(0)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.row{justify-content:center;flex-wrap:wrap;margin-top:12px}
+.chip{display:inline-flex;align-items:center;gap:7px;color:#d9c7ea;font-size:12px;background:#150d22cc;border:1px solid #3b2a4c;border-radius:20px;padding:6px 12px}
+.chip i{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none}
+.modes{display:flex;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.modes button{font:700 13px Tahoma;color:#e8d8fb;background:#170f26;border:1px solid #4a3560;border-radius:11px;padding:10px 15px;cursor:pointer}
+.modes button[aria-pressed="true"]{border-color:#4dff9e;color:#0a1a12;background:#4dff9e;box-shadow:0 0 20px #2bff8d55}
+.scoreline{direction:ltr;font:800 14px Arial;color:#ffd76a;letter-spacing:.5px;margin-bottom:14px}
+.controls{position:absolute;bottom:12px;inset-inline:14px;display:flex;justify-content:space-between;align-items:flex-end;direction:ltr;pointer-events:none;gap:10px}
+.pad{pointer-events:auto;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,46px);gap:6px}
+.pad button,.cam button{background:#1b1029e8;color:#fff;border:1px solid #855482;border-radius:12px;font:700 16px Tahoma;touch-action:none;cursor:pointer;padding:0}
+.pad button:active,.cam button:active{background:#4dff9e;color:#07130d}
+.cam{pointer-events:auto;display:grid;grid-template-columns:repeat(2,46px);gap:6px}
+.cam button{font-size:13px}
+.toast{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);pointer-events:none;font:900 34px Arial;color:#4dff9e;text-shadow:0 0 26px #2bff8d;opacity:0;direction:ltr;white-space:nowrap}
+.toast.show{animation:pop 1.05s ease-out}
+.toast.gold{color:#ffd76a;text-shadow:0 0 26px #ffb020}
+.toast.bad{color:#ff5f87;text-shadow:0 0 26px #ff2d6b}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.55)}22%{opacity:1;transform:translate(-50%,-50%) scale(1.14)}70%{opacity:1;transform:translate(-50%,-62%) scale(1)}100%{opacity:0;transform:translate(-50%,-82%) scale(.96)}}
+footer{margin-top:14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#b8a9c9;font-size:12px;align-items:center}
+footer button{background:#170f26;border:1px solid #3b2a4c;color:#e8d8fb;border-radius:9px;padding:7px 12px;font:700 12px Tahoma;cursor:pointer}
+@media(max-width:560px){
+  main{padding:10px}
+  .stat{min-width:60px;padding:6px 7px}
+  .stat strong{font-size:17px}
+  .stat .label{font-size:9px}
+  .pad{grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,42px)}
+  .overlay{padding:40px 10px 112px}
+  h1{font-size:clamp(30px,10vw,46px)}
+  .brand{font-size:22px}
+  .chip{font-size:10px;padding:5px 9px}
+  footer span{font-size:10px}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand" dir="ltr">SNAKE<b>3D</b></div>
+    <div class="tag">● میدان نئونی · موتور سه‌بعدی دست‌ساز</div>
+    <div class="nav">
+      <a href="../index.html">→ نئون ران</a>
+      <a href="#" id="helpBtn">راهنما</a>
+    </div>
+  </header>
+
+  <section class="game" aria-label="بازی مار سه‌بعدی">
+    <canvas id="view"></canvas>
+
+    <div class="hud">
+      <div class="stat"><div class="label">امتیاز</div><strong id="score">۰</strong></div>
+      <div class="stat"><div class="label">طول مار</div><strong id="len">۴</strong></div>
+      <div class="stat"><div class="label">مرحله</div><strong id="lvl">۱</strong></div>
+      <div class="stat gold"><div class="label">رکورد</div><strong id="best">۰</strong></div>
+    </div>
+
+    <div class="toast" id="toast" aria-live="polite"></div>
+
+    <div class="overlay" id="overlay">
+      <div>
+        <div class="eyebrow" id="eyebrow">3D NEON ARENA</div>
+        <h1 id="title">مار سه‌بعدی</h1>
+        <p id="message"></p>
+        <div class="modes" id="modes">
+          <button type="button" data-mode="classic" aria-pressed="true">دیواری (کلاسیک)</button>
+          <button type="button" data-mode="tunnel" aria-pressed="false">تونل (عبور از لبه)</button>
+        </div>
+        <div id="stats" class="scoreline" hidden></div>
+        <button class="btn" id="start">شروع بازی</button>
+        <div class="row">
+          <span class="chip"><i style="background:#ff3f7f;box-shadow:0 0 10px #ff3f7f"></i> سیب = ۱۰ امتیاز</span>
+          <span class="chip"><i style="background:#ffd76a;box-shadow:0 0 10px #ffd76a"></i> طلایی = ۵۰+ امتیاز</span>
+          <span class="chip"><i style="background:#8b2434;box-shadow:0 0 10px #ff4d63"></i> مانع = مرگ</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="pad">
+        <span></span><button type="button" data-dir="up" aria-label="بالا">↑</button><span></span>
+        <button type="button" data-dir="left" aria-label="چپ">←</button>
+        <button type="button" data-dir="down" aria-label="پایین">↓</button>
+        <button type="button" data-dir="right" aria-label="راست">→</button>
+      </div>
+      <div class="cam">
+        <button type="button" data-cam="left" aria-label="چرخش دوربین به چپ">⟲</button>
+        <button type="button" data-cam="right" aria-label="چرخش دوربین به راست">⟳</button>
+        <button type="button" data-cam="out" aria-label="دور کردن دوربین">−</button>
+        <button type="button" data-cam="in" aria-label="نزدیک کردن دوربین">+</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>مار <kbd>↑ ↓ ← →</kbd> / <kbd>W A S D</kbd> / سوایپ · دوربین <kbd>Q E</kbd> یا درگ ماوس · زوم <kbd>چرخ ماوس</kbd> · مکث <kbd>P</kbd> · صدا <kbd>M</kbd> · نمای اولیه <kbd>R</kbd><br>فرمان‌ها نسبت به دوربین‌اند: «بالا» یعنی دور شدن از تو.</span>
+    <button type="button" id="muteBtn">🔊 صدا روشن</button>
+  </footer>
+</main>
+
+<script>
+'use strict';
+/* ═════════════════════════════════════════════════════════════════
+   مار سه‌بعدی  —  موتور رندر سه‌بعدی نرم‌افزاری روی Canvas 2D
+   بدون هیچ کتابخانهٔ خارجی: پرسپکتیو، حذف سطوح پشتی، نورپردازی،
+   مه عمقی، مرتب‌سازی نقاش (painter's algorithm) و درخشش نئونی.
+   ═════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const cv = $('view'), ctx = cv.getContext('2d');
+const TAU = Math.PI * 2, D2R = Math.PI / 180;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+/* ── میدان بازی ─────────────────────────────────────────── */
+const N = 17, CELL = 1, HALF = N / 2, SPAN = 2 * HALF;
+const cellX = i => (i + .5) - HALF;
+const FOGC = [10, 7, 20];
+
+/* ── بوم و دوربین ───────────────────────────────────────── */
+let W = 900, Hh = 600, dpr = 1, focal = 900;
+let stars = [];
+function resize() {
+  const r = cv.getBoundingClientRect();
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(1, Math.round(r.width)); Hh = Math.max(1, Math.round(r.height));
+  cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  focal = (Hh / 2) / Math.tan((W < 620 ? 66 : 54) * D2R / 2);
+  makeStars();
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+addEventListener('resize', resize);
+resize();
+
+let camYaw = -40 * D2R, camPitch = 50 * D2R, camDist = 26;
+const camT = [0, .4, 0];
+let eye = [0, 20, 20], R_ = [1, 0, 0], U_ = [0, 1, 0], F_ = [0, 0, 1];
+function norm(v) { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; }
+function updateCam() {
+  const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
+  eye = [camT[0] + camDist * cp * Math.sin(camYaw), camT[1] + camDist * sp, camT[2] + camDist * cp * Math.cos(camYaw)];
+  F_ = norm([camT[0] - eye[0], camT[1] - eye[1], camT[2] - eye[2]]);
+  R_ = norm([-F_[2], 0, F_[0]]);                            // راست = f × up
+  U_ = [R_[1] * F_[2] - R_[2] * F_[1], R_[2] * F_[0] - R_[0] * F_[2], R_[0] * F_[1] - R_[1] * F_[0]];  // بالا = r × f
+}
+const NEAR = .55;
+function proj(p) {
+  const dx = p[0] - eye[0], dy = p[1] - eye[1], dz = p[2] - eye[2];
+  const cz = F_[0] * dx + F_[1] * dy + F_[2] * dz;
+  if (cz < NEAR) return null;
+  const cx = R_[0] * dx + R_[1] * dy + R_[2] * dz;
+  const cy = U_[0] * dx + U_[1] * dy + U_[2] * dz;
+  const s = focal / cz;
+  return [W / 2 + cx * s, Hh / 2 - cy * s, cz];
+}
+
+/* ── نور، رنگ و مه ──────────────────────────────────────── */
+const LIGHT = norm([-.42, .84, .34]);
+function shade(c, n, cz, emi, alpha) {
+  const d = n[0] * LIGHT[0] + n[1] * LIGHT[1] + n[2] * LIGHT[2];
+  let b = .34 + .82 * (d > 0 ? d : 0) + .14 * (d < 0 ? -d : 0) + (emi || 0);
+  if (b > 1.6) b = 1.6;
+  let r = c[0] * b, g = c[1] * b, bl = c[2] * b;
+  const fg = clamp((cz - 15) / 48, 0, .6);
+  if (fg > 0) { r += (FOGC[0] - r) * fg; g += (FOGC[1] - g) * fg; bl += (FOGC[2] - bl) * fg; }
+  return 'rgba(' + (r | 0) + ',' + (g | 0) + ',' + (bl | 0) + ',' + (alpha === undefined ? 1 : alpha) + ')';
+}
+
+/* صف رندر: چندضلعی‌ها و خطوط، با مرتب‌سازی عمقی */
+let buf = [];
+function addPoly(pts3, c, emi, alpha, glow, lw) {
+  const n = pts3.length, s = new Array(n);
+  let z = 0;
+  for (let i = 0; i < n; i++) { const p = proj(pts3[i]); if (!p) return; s[i] = p; z += p[2]; }
+  z /= n;
+  const ax = s[1][0] - s[0][0], ay = s[1][1] - s[0][1], bx = s[2][0] - s[0][0], by = s[2][1] - s[0][1];
+  if (ax * by - ay * bx >= 0) return;                       // سطح پشتی → حذف
+  const wx = pts3[1][0] - pts3[0][0], wy = pts3[1][1] - pts3[0][1], wz = pts3[1][2] - pts3[0][2];
+  const vx = pts3[2][0] - pts3[0][0], vy = pts3[2][1] - pts3[0][1], vz = pts3[2][2] - pts3[0][2];
+  buf.push({ z: z, s: s, col: shade(c, norm([wy * vz - wz * vy, wz * vx - wx * vz, wx * vy - wy * vx]), z, emi, alpha), glow: glow, lw: lw });
+}
+function addLine(a, b, col, w, glow) {
+  const p = proj(a), q = proj(b);
+  if (!p || !q) return;
+  buf.push({ z: (p[2] + q[2]) / 2, line: 1, s: [p, q], col: col, lw: w, glow: glow });
+}
+function paint() {
+  buf.sort((a, b) => b.z - a.z);                            // اول دور، بعد نزدیک
+  for (let i = 0; i < buf.length; i++) {
+    const f = buf[i], p = f.s;
+    if (f.glow) { ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = f.glow; ctx.shadowBlur = 15; }
+    ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+    for (let j = 1; j < p.length; j++) ctx.lineTo(p[j][0], p[j][1]);
+    if (f.line) {
+      ctx.strokeStyle = f.col; ctx.lineWidth = f.lw; ctx.lineCap = 'round'; ctx.stroke();
+    } else {
+      ctx.closePath(); ctx.fillStyle = f.col; ctx.fill();
+      if (f.glow) { ctx.strokeStyle = f.glow; ctx.lineWidth = f.lw || 1.1; ctx.stroke(); }
+    }
+    if (f.glow) { ctx.shadowBlur = 0; ctx.globalCompositeOperation = 'source-over'; }
+  }
+  buf.length = 0;
+}
+
+/* ── مکعب / جعبهٔ سه‌بعدی ───────────────────────────────── */
+/* رأس‌ها: 0..3 بالا (z- ,z+) و 4..7 پایین؛ ترتیب وجه‌ها طوری است
+   که بردار نرمال همیشه به بیرون اشاره کند.                     */
+const BX = [[1, 1, -1], [-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, -1, 1], [-1, -1, 1], [-1, -1, -1], [1, -1, -1]];
+const BF = [[0, 1, 2, 3], [4, 5, 6, 7], [3, 2, 5, 4], [0, 7, 6, 1], [0, 3, 4, 7], [1, 6, 5, 2]];
+const _m = new Array(8);
+function drawBox(c, ex, ey, ez, o) {
+  o = o || {};
+  const p = o.pos || [0, 0, 0], yaw = o.yaw || 0, pit = o.pitch || 0, k = o.scale === undefined ? 1 : o.scale;
+  if (k <= .001) return;
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pit), sp = Math.sin(pit);
+  for (let i = 0; i < 8; i++) {
+    const x = BX[i][0] * ex * k, y = BX[i][1] * ey * k, z = BX[i][2] * ez * k;
+    const y2 = y * cp - z * sp, z2 = y * sp + z * cp;
+    _m[i] = [p[0] + x * cy + z2 * sy, p[1] + y2, p[2] - x * sy + z2 * cy];
+  }
+  for (let i = 0; i < 6; i++) {
+    const f = BF[i];
+    addPoly([_m[f[0]], _m[f[1]], _m[f[2]], _m[f[3]]], c, o.emi || 0, o.alpha, o.glow, o.lw);
+  }
+}
+
+/* ── ذرات ───────────────────────────────────────────────── */
+let parts = [];
+function burst(p, col, n, sp, up) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU, e = Math.random() * 1.3, s = sp * (.3 + Math.random());
+    parts.push({ p: [p[0], p[1], p[2]], v: [Math.cos(a) * s, Math.sin(e) * s * (up || 1) + 1.4, Math.sin(a) * s], life: .5 + Math.random() * .9, t: 0, col: col, r: .05 + Math.random() * .11 });
+  }
+  if (parts.length > 520) parts.splice(0, parts.length - 520);
+}
+function updParts(dt) {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const q = parts[i];
+    q.t += dt;
+    if (q.t >= q.life) { parts.splice(i, 1); continue; }
+    q.v[1] -= 18 * dt;
+    q.p[0] += q.v[0] * dt; q.p[1] += q.v[1] * dt; q.p[2] += q.v[2] * dt;
+    if (q.p[1] < .04) { q.p[1] = .04; q.v[1] *= -.4; q.v[0] *= .75; q.v[2] *= .75; }
+  }
+}
+function drawParts() {
+  if (!parts.length) return;
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < parts.length; i++) {
+    const q = parts[i], s = proj(q.p);
+    if (!s) continue;
+    const a = 1 - q.t / q.life, r = Math.max(.8, q.r * focal / s[2]) * 2.6;
+    const g = ctx.createRadialGradient(s[0], s[1], 0, s[0], s[1], r);
+    g.addColorStop(0, 'rgba(' + q.col + ',' + a.toFixed(3) + ')');
+    g.addColorStop(.4, 'rgba(' + q.col + ',' + (a * .4).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(' + q.col + ',0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(s[0], s[1], r, 0, TAU); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+function glowSprite(p, r, rgb, a, ph) {
+  const s = proj(p); if (!s) return null;
+  const rr = Math.max(2, r * focal / s[2] * (1 + .07 * Math.sin(ph || 0)));
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(s[0], s[1], 0, s[0], s[1], rr);
+  g.addColorStop(0, 'rgba(' + rgb + ',' + a.toFixed(3) + ')');
+  g.addColorStop(.38, 'rgba(' + rgb + ',' + (a * .33).toFixed(3) + ')');
+  g.addColorStop(1, 'rgba(' + rgb + ',0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(s[0], s[1], rr, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  return s;
+}
+
+/* ── صدا (ساخته‌شده با WebAudio، بدون فایل) ─────────────── */
+let actx = null, muted = false;
+try { muted = localStorage.getItem('s3dMute') === '1'; } catch (e) { }
+function tone(f, d, type, g, f2, delay) {
+  if (muted) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const t = actx.currentTime + (delay || 0);
+    const o = actx.createOscillator(), gn = actx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t + d);
+    gn.gain.setValueAtTime(.0001, t);
+    gn.gain.exponentialRampToValueAtTime(g || .15, t + .012);
+    gn.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(gn); gn.connect(actx.destination); o.start(t); o.stop(t + d + .03);
+  } catch (e) { }
+}
+const sfx = {
+  eat() { tone(520, .1, 'square', .09); tone(880, .16, 'triangle', .11, null, .06); },
+  gold() { [660, 880, 1180, 1560].forEach((f, i) => tone(f, .13, 'triangle', .12, null, i * .055)); },
+  turn() { tone(300, .035, 'sine', .03); },
+  die() { tone(300, .8, 'sawtooth', .16, 44); tone(150, .95, 'square', .09, 36, .05); },
+  lvl() { [440, 587, 740, 988].forEach((f, i) => tone(f, .17, 'triangle', .11, null, i * .07)); },
+  ui() { tone(430, .06, 'sine', .06); },
+  tick() { tone(1200, .045, 'sine', .045); },
+  warp() { tone(240, .22, 'sine', .08, 900); }
+};
+
+/* ── وضعیت بازی ─────────────────────────────────────────── */
+let mode = 'ready', wallMode = 'classic';
+let snake = [], dir = [-1, 0], dirQueue = [], grow = 0, stepT = 0;
+let eaten = 0, score = 0, combo = 0, comboT = 0, level = 1, speed = 2.75;
+let food = null, gold = null, obstacles = [];
+let shake = 0, flash = 0, flashCol = '255,60,110', dieT = 0, wallHit = 0;
+let headFx = [0, .45, 0];
+let best = 0, bestLvl = 1;
+try { best = +localStorage.getItem('s3dBest') || 0; bestLvl = +localStorage.getItem('s3dLvl') || 1; } catch (e) { }
+
+const fa = n => Math.floor(n).toLocaleString('fa-IR');
+const fa1 = n => (+n).toLocaleString('fa-IR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const stepSpeed = () => Math.min(7.8, 2.8 + (level - 1) * .34);
+const levelOf = e => 1 + Math.floor(e / 5);
+
+function reset() {
+  const c = (N - 1) >> 1;
+  snake = [];
+  for (let i = 0; i < 4; i++) snake.push({ x: c - i, y: c });
+  snake.reverse();                       // سر در سمت چپ‌تر، حرکت به سمت -x
+  snake = [{ x: c, y: c }, { x: c + 1, y: c }, { x: c + 2, y: c }, { x: c + 3, y: c }];
+  dir = [-1, 0]; dirQueue = []; grow = 0; stepT = 0;
+  eaten = 0; score = 0; combo = 0; comboT = 0; level = 1; speed = stepSpeed();
+  obstacles = []; parts = []; gold = null; dieT = 0; shake = 0; flash = 0; wallHit = 0;
+  food = null; spawnFood();
+  headFx = [cellX(snake[0].x), .45, cellX(snake[0].y)];
+  hud();
+}
+function freeCell(gap) {
+  const g = gap === undefined ? 3 : gap;
+  for (let t = 0; t < 600; t++) {
+    const x = (Math.random() * N) | 0, y = (Math.random() * N) | 0;
+    let ok = true;
+    for (let i = 0; i < snake.length; i++) if (snake[i].x === x && snake[i].y === y) { ok = false; break; }
+    if (ok) for (let i = 0; i < obstacles.length; i++) if (obstacles[i].x === x && obstacles[i].y === y) { ok = false; break; }
+    if (ok && food && food.x === x && food.y === y) ok = false;
+    if (ok && gold && gold.x === x && gold.y === y) ok = false;
+    if (ok && Math.max(Math.abs(x - snake[0].x), Math.abs(y - snake[0].y)) < g) ok = false;
+    if (ok) return { x: x, y: y };
+  }
+  return null;
+}
+function spawnFood() { const c = freeCell(3); if (c) { c.b = 0; food = c; } }
+function maybeGold() {
+  if (gold || eaten < 2) return;
+  if (Math.random() < .3 + level * .03) { const c = freeCell(4); if (c) { c.t = 8.5; c.b = 0; gold = c; } }
+}
+function addObstacle() {
+  if (obstacles.length >= 14) return;
+  const c = freeCell(5);
+  if (c) { c.a = 0; obstacles.push(c); }
+}
+
+/* ── ورودی: فرمان نسبت به دوربین ────────────────────────── */
+const GRID = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+function pickDir(name) {
+  let bestD = null, bv = -1e9;
+  for (let i = 0; i < 4; i++) {
+    const d = GRID[i];
+    const pr = R_[0] * d[0] + R_[2] * d[1];     // مؤلفهٔ راستِ صفحه
+    const pu = U_[0] * d[0] + U_[2] * d[1];     // مؤلفهٔ بالای صفحه
+    const v = name === 'up' ? pu : name === 'down' ? -pu : name === 'right' ? pr : -pr;
+    if (v > bv) { bv = v; bestD = d; }
+  }
+  return bestD;
+}
+function wantDir(name) {
+  if (mode !== 'play') return;
+  const d = pickDir(name); if (!d) return;
+  const last = dirQueue.length ? dirQueue[dirQueue.length - 1] : dir;
+  if (d[0] === -last[0] && d[1] === -last[1]) return;      // چرخش ۱۸۰° ممنوع
+  if (d[0] === last[0] && d[1] === last[1]) return;
+  if (dirQueue.length < 3) { dirQueue.push(d); sfx.turn(); }
+}
+const keys = new Set();
+addEventListener('keydown', e => {
+  const k = e.key, c = e.code;
+  if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight' || k === ' ' || k === 'Enter') e.preventDefault();
+  if (k === 'ArrowUp' || c === 'KeyW') wantDir('up');
+  else if (k === 'ArrowDown' || c === 'KeyS') wantDir('down');
+  else if (k === 'ArrowLeft' || c === 'KeyA') wantDir('left');
+  else if (k === 'ArrowRight' || c === 'KeyD') wantDir('right');
+  if (c === 'KeyQ') keys.add('q');
+  if (c === 'KeyE') keys.add('e');
+  if ((c === 'KeyP' || k === 'Escape') && !e.repeat) togglePause();
+  if (c === 'KeyM' && !e.repeat) toggleMute();
+  if (c === 'KeyR' && !e.repeat) { camYaw = -40 * D2R; camPitch = 50 * D2R; camDist = 26; sfx.ui(); }
+  if ((k === ' ' || k === 'Enter') && !e.repeat && mode !== 'play') $('start').click();
+});
+addEventListener('keyup', e => { if (e.code === 'KeyQ') keys.delete('q'); if (e.code === 'KeyE') keys.delete('e'); });
+addEventListener('blur', () => { keys.clear(); if (mode === 'play') togglePause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') togglePause(); });
+
+let drag = null, pinch = 0;
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') return;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { }
+  drag = { x: e.clientX, y: e.clientY, yaw: camYaw, pitch: camPitch };
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  camYaw = drag.yaw - (e.clientX - drag.x) * .0075;
+  camPitch = clamp(drag.pitch + (e.clientY - drag.y) * .006, 14 * D2R, 82 * D2R);
+});
+const endDrag = () => { drag = null; };
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('pointerleave', endDrag);
+cv.addEventListener('wheel', e => { e.preventDefault(); camDist = clamp(camDist + Math.sign(e.deltaY) * 1.7, 13, 46); }, { passive: false });
+
+let sw = null;
+cv.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) { pinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); return; }
+  const t = e.touches[0];
+  sw = { x: t.clientX, y: t.clientY, done: false };
+}, { passive: true });
+cv.addEventListener('touchmove', e => {
+  if (e.touches.length === 2 && pinch) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    camDist = clamp(camDist + (pinch - d) * .05, 13, 46); pinch = d; e.preventDefault(); return;
+  }
+  if (!sw || sw.done || mode !== 'play') return;
+  const t = e.touches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y;
+  if (Math.hypot(dx, dy) < 26) return;
+  wantDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  sw.done = true;
+  if (e.cancelable) e.preventDefault();
+}, { passive: false });
+cv.addEventListener('touchend', () => { sw = null; pinch = 0; });
+
+for (const b of document.querySelectorAll('[data-dir]')) b.addEventListener('pointerdown', e => { e.preventDefault(); wantDir(b.dataset.dir); });
+for (const b of document.querySelectorAll('[data-cam]')) {
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const a = b.dataset.cam;
+    if (a === 'left') camYaw -= 24 * D2R;
+    else if (a === 'right') camYaw += 24 * D2R;
+    else if (a === 'in') camDist = clamp(camDist - 3, 13, 46);
+    else camDist = clamp(camDist + 3, 13, 46);
+    sfx.ui();
+  });
+}
+
+/* ── رابط کاربری ─────────────────────────────────────────── */
+function hud() {
+  $('score').textContent = fa(score);
+  $('len').textContent = fa(snake.length);
+  $('lvl').textContent = fa(level);
+  $('best').textContent = fa(best);
+}
+let toastT = null;
+function toast(txt, cls) {
+  const el = $('toast');
+  el.textContent = txt; el.className = 'toast ' + (cls || '');
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1100);
+}
+function overlay(o) {
+  $('eyebrow').textContent = o.eyebrow || '';
+  $('title').textContent = o.title || '';
+  $('message').innerHTML = o.message || '';
+  $('start').textContent = o.btn || 'شروع بازی';
+  const st = $('stats');
+  if (o.stats) { st.hidden = false; st.textContent = o.stats; } else st.hidden = true;
+  $('modes').style.display = o.modes === false ? 'none' : 'flex';
+  $('overlay').hidden = false;
+}
+const hideOverlay = () => { $('overlay').hidden = true; };
+
+function startGame() {
+  if (mode === 'paused') { mode = 'play'; hideOverlay(); sfx.ui(); return; }
+  reset(); mode = 'play'; hideOverlay(); $('start').blur();
+  tone(330, .12, 'triangle', .1); tone(660, .2, 'triangle', .1, null, .1);
+}
+function togglePause() {
+  if (mode === 'play') {
+    mode = 'paused';
+    overlay({ eyebrow: 'PAUSED', title: 'مکث', message: 'هر وقت آماده‌ای، برگرد به میدان نئون.', btn: 'ادامهٔ بازی', modes: false, stats: 'امتیاز ' + fa(score) + '  ·  مرحله ' + fa(level) + '  ·  طول ' + fa(snake.length) });
+    sfx.ui();
+  } else if (mode === 'paused') startGame();
+}
+function gameOver(reason) {
+  mode = 'over'; dieT = 0; shake = 18; flash = 1; flashCol = '255,60,110';
+  sfx.die(); toast('GAME OVER', 'bad');
+  burst([headFx[0], .5, headFx[2]], '255,90,140', 60, 7.5, 1.4);
+  burst([headFx[0], .5, headFx[2]], '90,255,170', 30, 6, 1.2);
+  if (score > best) { best = score; bestLvl = level; try { localStorage.setItem('s3dBest', best); localStorage.setItem('s3dLvl', bestLvl); } catch (e) { } }
+  hud();
+  setTimeout(() => {
+    if (mode !== 'over') return;
+    overlay({
+      eyebrow: 'GAME OVER', title: 'باختی!',
+      message: reason + '<br>سیب‌های خورده‌شده: ' + fa(eaten) + ' · طول مار: ' + fa(snake.length),
+      btn: 'دوباره بازی کن', modes: false,
+      stats: 'امتیاز ' + fa(score) + ' · مرحله ' + fa(level) + ' · رکورد ' + fa(best)
+    });
+  }, 900);
+}
+$('start').onclick = startGame;
+$('helpBtn').onclick = e => {
+  e.preventDefault();
+  const wasPlay = mode === 'play';
+  if (wasPlay) togglePause();
+  overlay({
+    eyebrow: 'HOW TO PLAY', title: 'راهنما',
+    message: 'مار را با <kbd>↑ ↓ ← →</kbd> یا <kbd>W A S D</kbd> بچرخان (موبایل: سوایپ روی صحنه یا دکمه‌های پایین).<br>فرمان‌ها نسبت به دوربین‌اند، پس «بالا» همیشه یعنی دور شدن از تو.<br>دوربین: درگ ماوس یا <kbd>Q</kbd> <kbd>E</kbd> · زوم: چرخ ماوس یا دو انگشت · مکث <kbd>P</kbd> · صدا <kbd>M</kbd> · نمای اولیه <kbd>R</kbd><br>هر ۵ سیب = یک مرحلهٔ جدید: سرعت بیشتر و یک مانع تازه. خوردن پشت‌سرهم، امتیاز ترکیبی می‌سازد.',
+    btn: wasPlay ? 'ادامهٔ بازی' : 'شروع بازی', modes: false
+  });
+  sfx.ui();
+};
+function toggleMute() {
+  muted = !muted;
+  try { localStorage.setItem('s3dMute', muted ? '1' : '0'); } catch (e) { }
+  $('muteBtn').textContent = muted ? '🔇 صدا خاموش' : '🔊 صدا روشن';
+  if (!muted) sfx.ui();
+}
+$('muteBtn').onclick = toggleMute;
+$('muteBtn').textContent = muted ? '🔇 صدا خاموش' : '🔊 صدا روشن';
+for (const b of document.querySelectorAll('#modes button')) {
+  b.onclick = () => {
+    wallMode = b.dataset.mode;
+    for (const o of document.querySelectorAll('#modes button')) o.setAttribute('aria-pressed', String(o === b));
+    sfx.ui();
+  };
+}
+
+/* ── منطق ───────────────────────────────────────────────── */
+function onSnake(x, y, skipTail) {
+  const n = snake.length;
+  for (let i = 0; i < n; i++) { if (skipTail && i === n - 1) continue; if (snake[i].x === x && snake[i].y === y) return true; }
+  return false;
+}
+function onObs(x, y) { for (let i = 0; i < obstacles.length; i++) if (obstacles[i].x === x && obstacles[i].y === y) return true; return false; }
+
+function step() {
+  if (dirQueue.length) {
+    const d = dirQueue.shift();
+    if (!(d[0] === -dir[0] && d[1] === -dir[1])) dir = d;
+  }
+  const head = snake[0];
+  let nx = head.x + dir[0], ny = head.y + dir[1], warp = false;
+  if (nx < 0 || nx >= N || ny < 0 || ny >= N) {
+    if (wallMode === 'tunnel') {
+      nx = (nx + N) % N; ny = (ny + N) % N; warp = true;
+      sfx.warp();
+      burst([cellX(head.x) + dir[0] * .5, .5, cellX(head.y) + dir[1] * .5], '120,220,255', 16, 3.5, .8);
+    } else {
+      wallHit = 1;
+      burst([clamp(cellX(nx), -HALF, HALF), .5, clamp(cellX(ny), -HALF, HALF)], '255,80,130', 34, 6, 1);
+      return gameOver('به دیوار کوبیدی!');
+    }
+  }
+  if (onObs(nx, ny)) {
+    burst([cellX(nx), .5, cellX(ny)], '255,90,110', 42, 6.5, 1.1);
+    return gameOver('به مانع خوردی!');
+  }
+  const tail = snake[snake.length - 1];
+  const tailMoves = grow <= 0;
+  if (onSnake(nx, ny, !(tail.x === nx && tail.y === ny && tailMoves))) {
+    burst([cellX(nx), .5, cellX(ny)], '255,120,160', 40, 6, 1.1);
+    return gameOver('مار به خودش پیچید!');
+  }
+  snake.unshift({ x: nx, y: ny, warp: warp });
+  if (grow > 0) grow--; else snake.pop();
+
+  if (food && nx === food.x && ny === food.y) {
+    eaten++; grow++; combo++; comboT = 5;
+    const mul = 1 + Math.min(2, (combo - 1) * .25);
+    const gain = Math.round(10 * mul);
+    score += gain;
+    const p = [cellX(nx), .55, cellX(ny)];
+    burst(p, '255,70,120', 26, 5.5, 1.2);
+    burst(p, '255,205,225', 10, 3.4, 1.6);
+    flash = .3; flashCol = '255,80,130'; shake = Math.max(shake, 3.5);
+    sfx.eat();
+    if (combo >= 3) toast('COMBO ×' + fa1(mul), 'gold');
+    const nl = levelOf(eaten);
+    if (nl > level) {
+      level = nl; speed = stepSpeed(); addObstacle();
+      sfx.lvl(); toast('LEVEL ' + fa(level));
+      flash = .45; flashCol = '90,255,170';
+    }
+    spawnFood(); maybeGold();
+  } else if (comboT <= 0) combo = 0;
+
+  if (gold && nx === gold.x && ny === gold.y) {
+    eaten++; grow += 2; combo++; comboT = 5;
+    const gain = 50 + level * 5;
+    score += gain;
+    const p = [cellX(nx), .6, cellX(ny)];
+    burst(p, '255,215,110', 50, 7, 1.5);
+    burst(p, '255,255,225', 18, 4, 1.8);
+    flash = .5; flashCol = '255,210,90'; shake = Math.max(shake, 5);
+    sfx.gold(); toast('+' + fa(gain) + ' GOLD', 'gold');
+    gold = null;
+    const nl = levelOf(eaten);
+    if (nl > level) { level = nl; speed = stepSpeed(); addObstacle(); sfx.lvl(); }
+    maybeGold();
+  }
+  hud();
+}
+
+function update(dt) {
+  if (mode === 'play') {
+    comboT = Math.max(0, comboT - dt);
+    if (comboT === 0) combo = 0;
+    if (food) food.b = Math.min(1, food.b + dt * 4);
+    if (gold) {
+      gold.b = Math.min(1, gold.b + dt * 5);
+      gold.t -= dt;
+      if (gold.t < 3 && Math.random() < dt * 2.5) sfx.tick();
+      if (gold.t <= 0) { burst([cellX(gold.x), .5, cellX(gold.y)], '255,215,110', 14, 3, .7); gold = null; }
+    }
+    for (let i = 0; i < obstacles.length; i++) obstacles[i].a = Math.min(1, obstacles[i].a + dt * 4);
+    stepT += dt * speed;
+    let guard = 0;
+    while (stepT >= 1 && mode === 'play' && guard++ < 6) { stepT -= 1; step(); }
+    if (guard >= 6) stepT = 0;
+  } else if (mode === 'over') dieT += dt;
+  updParts(dt);
+  shake = Math.max(0, shake - dt * 32);
+  flash = Math.max(0, flash - dt * 2.2);
+  wallHit = Math.max(0, wallHit - dt * 1.7);
+  if (keys.has('q')) camYaw -= dt * 1.8;
+  if (keys.has('e')) camYaw += dt * 1.8;
+}
+
+/* ── آسمان و پس‌زمینه ────────────────────────────────────── */
+function makeStars() {
+  stars = [];
+  for (let i = 0; i < 150; i++) stars.push({ x: Math.random(), y: Math.random() * .74, r: Math.random() < .12 ? 1.7 : .9, a: .2 + Math.random() * .6, tw: Math.random() * TAU });
+}
+makeStars();
+function drawSky(t) {
+  const hz = Hh * .44;
+  const g = ctx.createLinearGradient(0, 0, 0, hz);
+  g.addColorStop(0, '#07051a'); g.addColorStop(.42, '#1a1030'); g.addColorStop(.8, '#452050'); g.addColorStop(1, '#7d2f5a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, hz + 2);
+  ctx.fillStyle = '#0a0714'; ctx.fillRect(0, hz, W, Hh - hz);
+
+  const ox = (camYaw * 110) % W;
+  for (let i = 0; i < stars.length; i++) {
+    const s = stars[i];
+    let x = (s.x * W - ox) % W; if (x < 0) x += W;
+    ctx.fillStyle = 'rgba(255,236,255,' + (s.a * (.55 + .45 * Math.sin(t * 1.6 + s.tw))).toFixed(3) + ')';
+    ctx.fillRect(x, s.y * hz, s.r, s.r);
+  }
+  const sx = W / 2 - Math.sin(camYaw) * W * .34, sy = hz * .76, sr = Math.min(W * .1, Hh * .16);
+  const sg = ctx.createLinearGradient(0, sy - sr, 0, sy + sr);
+  sg.addColorStop(0, '#ffdca8'); sg.addColorStop(.5, '#ff5f9e'); sg.addColorStop(1, '#a63cff');
+  ctx.save(); ctx.globalAlpha = .82; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, TAU); ctx.clip();
+  ctx.fillStyle = sg; ctx.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
+  ctx.fillStyle = 'rgba(18,7,30,.55)';
+  for (let i = 0; i < 7; i++) ctx.fillRect(sx - sr, sy + i * sr / 5, sr * 2, 1 + i * .9);
+  ctx.restore();
+  ctx.globalCompositeOperation = 'lighter';
+  const hg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 3.2);
+  hg.addColorStop(0, 'rgba(255,90,160,.28)'); hg.addColorStop(1, 'rgba(255,90,160,0)');
+  ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(sx, sy, sr * 3.2, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+
+  ctx.fillStyle = '#140d24';
+  ctx.beginPath(); ctx.moveTo(0, hz);
+  for (let i = 0; i <= 24; i++) {
+    const k = Math.sin(i * 1.7 + camYaw * 3) * .5 + Math.sin(i * .61 - camYaw * 2) * .5;
+    ctx.lineTo(i / 24 * W, hz - (8 + Math.abs(k) * Hh * .07));
+  }
+  ctx.lineTo(W, hz); ctx.closePath(); ctx.fill();
+}
+
+/* ── کف میدان ───────────────────────────────────────────── */
+function drawFloor(t) {
+  const pa = proj([-HALF, 0, -HALF]), pb = proj([HALF, 0, -HALF]), pc = proj([HALF, 0, HALF]), pd = proj([-HALF, 0, HALF]);
+  if (!pa || !pb || !pc || !pd) return;
+  const g = ctx.createLinearGradient(0, Math.min(pa[1], pb[1]), 0, Math.max(pc[1], pd[1]));
+  g.addColorStop(0, '#2b1d3e'); g.addColorStop(.55, '#1b1229'); g.addColorStop(1, '#110b1c');
+  ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.lineTo(pc[0], pc[1]); ctx.lineTo(pd[0], pd[1]); ctx.closePath();
+  ctx.fillStyle = g; ctx.fill();
+
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(152,106,192,.20)';
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const o = i - HALF;
+    let p = proj([o, .006, -HALF]), q = proj([o, .006, HALF]);
+    if (p && q) { ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); }
+    p = proj([-HALF, .006, o]); q = proj([HALF, .006, o]);
+    if (p && q) { ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); }
+  }
+  ctx.stroke();
+
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(120,60,190,.4)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.lineTo(pc[0], pc[1]); ctx.lineTo(pd[0], pd[1]); ctx.closePath(); ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over';
+
+  // سایهٔ نرم زیر بدن مار و سیب‌ها
+  const shadow = (wx, wz, r, a) => {
+    const pts = [];
+    for (let i = 0; i < 12; i++) {
+      const an = i / 12 * TAU, p = proj([wx + Math.cos(an) * r, .014, wz + Math.sin(an) * r]);
+      if (!p) return;
+      pts.push(p);
+    }
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath(); ctx.fillStyle = 'rgba(0,0,0,' + a + ')'; ctx.fill();
+  };
+  for (let i = 0; i < chainPts.length; i += 2) shadow(chainPts[i][0], chainPts[i][2], .46, .32);
+  if (food) shadow(cellX(food.x), cellX(food.y), .52, .4);
+  if (gold) shadow(cellX(gold.x), cellX(gold.y), .58, .42);
+  for (let i = 0; i < obstacles.length; i++) shadow(cellX(obstacles[i].x), cellX(obstacles[i].y), .55, .45);
+}
+
+/* ── دیوارها ────────────────────────────────────────────── */
+function drawWalls(t) {
+  if (wallMode === 'tunnel') {
+    for (let s = 0; s < 4; s++) {
+      const sx = s < 2 ? -HALF : HALF, sz = s % 2 === 0 ? -HALF : HALF;
+      drawBox([90, 210, 140], .16, .5, .16, { pos: [sx, .5, sz], emi: .5, glow: 'rgba(120,255,190,.8)', lw: 1.3 });
+      glowSprite([sx, .95, sz], .9, '120,255,190', .3, t * 1.3 + s);
+    }
+    for (let s = 0; s < 4; s++) {
+      const horiz = s < 2, a = horiz ? [-HALF, .02, s === 0 ? -HALF : HALF] : [s === 2 ? -HALF : HALF, .02, -HALF];
+      const b = horiz ? [HALF, .02, s === 0 ? -HALF : HALF] : [s === 2 ? -HALF : HALF, .02, HALF];
+      addLine(a, b, 'rgba(110,255,190,.5)', 2, '#3dffa8');
+    }
+    return;
+  }
+  const th = .3, hh = .55, pulse = wallHit;
+  const col = [62 + pulse * 140, 40 + pulse * 16, 86 + pulse * 26];
+  const W1 = SPAN + th * 2;                                 // طول دیوارهای روبه‌رو
+  const walls = [
+    [[0, hh / 2, -HALF - th / 2], W1 / 2, hh / 2, th / 2, [0, hh, -HALF - th], [HALF, hh, -HALF - th], [-HALF, hh, -HALF - th]],
+    [[0, hh / 2, HALF + th / 2], W1 / 2, hh / 2, th / 2, [0, hh, HALF + th], [HALF, hh, HALF + th], [-HALF, hh, HALF + th]],
+    [[-HALF - th / 2, hh / 2, 0], th / 2, hh / 2, HALF, [-HALF - th, hh, 0], [-HALF - th, hh, -HALF], [-HALF - th, hh, HALF]],
+    [[HALF + th / 2, hh / 2, 0], th / 2, hh / 2, HALF, [HALF + th, hh, 0], [HALF + th, hh, -HALF], [HALF + th, hh, HALF]]
+  ];
+  for (let i = 0; i < 4; i++) {
+    const w = walls[i];
+    drawBox(col, w[1], w[2], w[3], { pos: w[0], emi: .02 + pulse * .5 });
+    const gc = 'rgba(255,' + (90 + pulse * 90) + ',' + (170 - pulse * 60) + ',' + (.8 + pulse * .2).toFixed(2) + ')';
+    addLine(w[4], w[5], gc, 2.2, '#ff4d9e');
+    addLine(w[4], w[6], gc, 2.2, '#ff4d9e');
+  }
+  for (let s = 0; s < 4; s++) {
+    const sx = s < 2 ? -HALF - th : HALF + th, sz = s % 2 === 0 ? -HALF - th : HALF + th;
+    drawBox([42, 25, 60], .28, 1, .28, { pos: [sx, 1, sz] });
+    drawBox([120, 255, 190], .18, .11, .18, { pos: [sx, 2.05, sz], emi: 1.15, glow: 'rgba(90,255,170,.9)', lw: 1.2 });
+    glowSprite([sx, 2.05, sz], .6, '90,255,170', .5, t * 1.5 + s);
+  }
+}
+
+/* ── سیب: هشت‌وجهی چرخان ─────────────────────────────────── */
+const OV = [[0, 1, 0], [.72, 0, 0], [0, 0, .72], [-.72, 0, 0], [0, 0, -.72], [0, -1, 0]];
+const OF = [[0, 2, 1], [0, 3, 2], [0, 4, 3], [0, 1, 4], [5, 1, 2], [5, 2, 3], [5, 3, 4], [5, 4, 1]];
+function gem(cx, cy, cz, sc, yaw, col, emi, glow) {
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const v = [];
+  for (let i = 0; i < 6; i++) {
+    const x = OV[i][0] * sc, y = OV[i][1] * sc, z = OV[i][2] * sc;
+    v.push([cx + x * c + z * s, cy + y, cz - x * s + z * c]);
+  }
+  for (let i = 0; i < 8; i++) { const f = OF[i]; addPoly([v[f[0]], v[f[1]], v[f[2]]], col, emi, 1, glow, 1); }
+}
+function drawFood(t) {
+  if (food) {
+    const cx = cellX(food.x), cz = cellX(food.y), bob = .55 + Math.sin(t * 3) * .09, sc = .42 * food.b;
+    glowSprite([cx, bob, cz], 1.55, '255,60,120', .36 + .1 * Math.sin(t * 4), t * 4);
+    if (sc > .02) {
+      gem(cx, bob, cz, sc, t * 1.7, [235, 40, 95], .28, 'rgba(255,60,120,.5)');
+      drawBox([255, 215, 130], .045, .15, .045, { pos: [cx, bob + sc * .95, cz], emi: .85, glow: 'rgba(150,255,160,.7)', lw: 1 });
+      drawBox([120, 255, 170], .12, .02, .07, { pos: [cx + .07, bob + sc * 1.15, cz], yaw: .5, emi: .7 });
+    }
+  }
+  if (gold) {
+    const cx = cellX(gold.x), cz = cellX(gold.y), bob = .62 + Math.sin(t * 4.2) * .12;
+    const urg = gold.t < 2.4 ? .45 + .55 * Math.abs(Math.sin(t * 15)) : 1;
+    glowSprite([cx, bob, cz], 2.2, '255,205,80', (.4 + .12 * Math.sin(t * 5)) * urg, t * 5);
+    if (gold.b > .05) gem(cx, bob, cz, .48 * gold.b * (.92 + .08 * Math.sin(t * 6)), -t * 2.6, [255, 200, 60], .55 * urg, 'rgba(255,220,120,.85)');
+    const fr = clamp(gold.t / 8.5, 0, 1);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = 'rgba(255,205,80,' + (.8 * urg).toFixed(2) + ')'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i <= 26; i++) {
+      const a = -Math.PI / 2 + i / 26 * TAU * fr;
+      const p = proj([cx + Math.cos(a) * .62, .035, cz + Math.sin(a) * .62]);
+      if (!p) continue;
+      if (!started) { ctx.moveTo(p[0], p[1]); started = true; } else ctx.lineTo(p[0], p[1]);
+    }
+    ctx.stroke(); ctx.globalCompositeOperation = 'source-over';
+  }
+}
+
+/* ── موانع ──────────────────────────────────────────────── */
+function drawObstacles(t) {
+  for (let i = 0; i < obstacles.length; i++) {
+    const o = obstacles[i], cx = cellX(o.x), cz = cellX(o.y);
+    const e = o.a < 1 ? o.a * o.a : 1, s = .5 * e;
+    if (s < .02) continue;
+    drawBox([56, 20, 36], s, s, s, { pos: [cx, s, cz], yaw: t * .1 + i });
+    drawBox([255, 60, 95], s * .4, s * .28, s * .4, { pos: [cx, s * 2 + s * .22, cz], emi: 1.1, glow: 'rgba(255,60,100,.75)', lw: 1.2, yaw: -t * .5 + i });
+    glowSprite([cx, s * 2 + s * .3, cz], 1.1, '255,60,100', .28 + .12 * Math.sin(t * 3 + i), t * 3);
+  }
+}
+
+/* ── مار: زنجیرهٔ سه‌بعدی ────────────────────────────────── */
+let chainPts = [];
+function buildChain(t) {
+  const pts = [], n = snake.length;
+  for (let i = 0; i < n; i++) {
+    const c = snake[i];
+    let x = cellX(c.x), z = cellX(c.y);
+    if (i === 0) { x += dir[0] * stepT * CELL; z += dir[1] * stepT * CELL; }
+    const wobble = i === 0 ? 0 : Math.sin(t * 6.5 - i * .55) * .02;
+    pts.push([x, .45 + wobble, z]);
+  }
+  chainPts = pts;
+  return pts;
+}
+function radii(n) {
+  const r = new Array(n);
+  for (let i = 0; i < n; i++) {
+    let v = .4;
+    const fromTail = n - 1 - i;
+    if (fromTail < 5) v *= .3 + .7 * (fromTail / 5);
+    if (i === 0) v *= 1.06;
+    r[i] = v;
+  }
+  return r;
+}
+function chainMesh(pts, rs, caps) {
+  const n = pts.length;
+  if (n < 2) return;
+  const K = 6, rings = [];
+  for (let i = 0; i < n; i++) {
+    const p = pts[i - 1] || pts[i], q = pts[i + 1] || pts[i];
+    let dx = q[0] - p[0], dz = q[2] - p[2];
+    const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+    const rx = dz, rz = -dx, r = rs[i], ring = [];
+    for (let k = 0; k < K; k++) {
+      const a = k / K * TAU + Math.PI / K;
+      ring.push([pts[i][0] + rx * Math.cos(a) * r, pts[i][1] + Math.sin(a) * r * .88, pts[i][2] + rz * Math.cos(a) * r]);
+    }
+    rings.push(ring);
+  }
+  for (let i = 0; i < n - 1; i++) {
+    if (Math.hypot(pts[i][0] - pts[i + 1][0], pts[i][2] - pts[i + 1][2]) > 2.2) continue;  // پرش از لبه (حالت تونل)
+    const A = rings[i], B = rings[i + 1], emi = i === 0 ? .16 : 0;
+    for (let k = 0; k < K; k++) {
+      const k2 = (k + 1) % K;
+      addPoly([A[k], A[k2], B[k2], B[k]], [26, 205, 128], emi);
+    }
+    if (caps && i === n - 2) addPoly([B[3], B[2], B[1], B[0]], [18, 150, 95], 0);
+    if (caps && i === 0) addPoly([A[0], A[1], A[2], A[3]], [40, 255, 160], .3);
+    const m1 = [(A[0][0] + A[1][0]) / 2, (A[0][1] + A[1][1]) / 2, (A[0][2] + A[1][2]) / 2];
+    const m2 = [(B[0][0] + B[1][0]) / 2, (B[0][1] + B[1][1]) / 2, (B[0][2] + B[1][2]) / 2];
+    addLine(m1, m2, i === 0 ? 'rgba(190,255,225,.8)' : 'rgba(90,255,180,.34)', i === 0 ? 2.1 : 1.2, '#3dffa8');
+  }
+}
+/* برچسب تخت روی سطح (نرمال = جهت f) — برای مردمک چشم و جزئیات */
+function decal(cx, cy, cz, fx, fz, w, h, col, emi, glow) {
+  const rx = fz, rz = -fx;
+  addPoly([
+    [cx - rx * w, cy - h, cz - rz * w],
+    [cx + rx * w, cy - h, cz + rz * w],
+    [cx + rx * w, cy + h, cz + rz * w],
+    [cx - rx * w, cy + h, cz - rz * w]
+  ], col, emi, 1, glow);
+}
+function drawHead(t) {
+  const h = chainPts[0], q = chainPts[1] || h;
+  if (!h) return;
+  headFx = h;
+  let dx = h[0] - q[0], dz = h[2] - q[2];
+  const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+  const yaw = Math.atan2(dx, dz), pitch = -Math.asin(clamp((h[1] - q[1]) / l, -1, 1));
+  drawBox([34, 238, 148], .45, .38, .54, { pos: h, yaw: yaw, pitch: pitch, emi: .12 });
+  const rx = dz, rz = -dx;
+  // چشم‌ها کمی از سطح سر بیرون می‌زنند تا در مرتب‌سازی عمقی درست رسم شوند
+  for (let s = -1; s <= 1; s += 2) {
+    const ecx = h[0] + dx * .56 + rx * .2 * s, ecy = h[1] + .12, ecz = h[2] + dz * .56 + rz * .2 * s;
+    if (mode === 'over') {
+      drawBox([255, 70, 100], .09, .09, .09, { pos: [ecx, ecy, ecz], yaw: yaw, emi: .5 });
+      decal(ecx + dx * .095, ecy, ecz + dz * .095, dx, dz, .05, .012, [60, 8, 20], .2);
+    } else {
+      drawBox([250, 250, 255], .085, .085, .085, { pos: [ecx, ecy, ecz], yaw: yaw, emi: .4 });
+      decal(ecx + dx * .09, ecy, ecz + dz * .09, dx, dz, .04, .052, [12, 16, 28], 0);
+    }
+  }
+  if (mode !== 'over' && Math.sin(t * 1.7) > .5) {
+    const b = [h[0] + dx * .52, h[1] - .06, h[2] + dz * .52];
+    const tp = [b[0] + dx * .4, b[1] - .03, b[2] + dz * .4];
+    addLine(b, tp, 'rgba(255,80,130,.95)', 2, '#ff3f7f');
+    addLine(tp, [tp[0] + dx * .15 + rx * .11, tp[1], tp[2] + dz * .15 + rz * .11], 'rgba(255,80,130,.9)', 1.6, '#ff3f7f');
+    addLine(tp, [tp[0] + dx * .15 - rx * .11, tp[1], tp[2] + dz * .15 - rz * .11], 'rgba(255,80,130,.9)', 1.6, '#ff3f7f');
+  }
+  glowSprite([h[0], h[1] + .1, h[2]], 1.3, '80,255,170', .2, t * 2);
+}
+
+/* ── جلوه‌های روی صفحه ──────────────────────────────────── */
+function drawVignette() {
+  const g = ctx.createRadialGradient(W / 2, Hh * .5, Math.min(W, Hh) * .3, W / 2, Hh * .5, Math.max(W, Hh) * .78);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.6)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh);
+}
+function drawGauges() {
+  if (mode !== 'play') return;
+  const bar = (x, y, h, f, col) => {
+    ctx.fillStyle = 'rgba(255,255,255,.10)'; ctx.fillRect(x - 3, y, 6, h);
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = col;
+    ctx.fillRect(x - 3, y + h * (1 - clamp(f, 0, 1)), 6, h * clamp(f, 0, 1));
+    ctx.globalCompositeOperation = 'source-over';
+  };
+  bar(W - 24, Hh * .3, Hh * .3, comboT / 5, combo >= 3 ? '#ffd76a' : '#4dff9e');
+  bar(24, Hh * .6, Hh * .3, stepT, '#ff5f9e');
+}
+
+/* ── رندر ───────────────────────────────────────────────── */
+function render(t) {
+  updateCam();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, Hh);
+  drawSky(t);
+  ctx.save();
+  if (shake > .2) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
+
+  buildChain(t);
+  drawFloor(t);
+  drawWalls(t);
+  drawObstacles(t);
+
+  if (chainPts.length > 1) {
+    if (mode === 'over') {
+      const sq = Math.max(.12, 1 - dieT * 1.7);
+      chainMesh(chainPts.map(p => [p[0], p[1] * sq + (1 - sq) * .06, p[2]]), radii(snake.length).map(r => r * sq), false);
+      const h = chainPts[0];
+      drawBox([96, 62, 74], .42, .16, .5, { pos: [h[0], .16, h[2]], emi: .04 });
+    } else {
+      chainMesh(chainPts, radii(snake.length), true);
+      drawHead(t);
+    }
+  }
+  drawFood(t);
+  paint();
+  drawParts();
+  ctx.restore();
+
+  drawGauges();
+  drawVignette();
+  if (flash > .01) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(' + flashCol + ',' + (flash * .28).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, Hh);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+
+/* ── حلقهٔ اصلی ─────────────────────────────────────────── */
+let last = performance.now(), acc = 0, T = 0;
+const FIXED = 1 / 60;
+function frame(now) {
+  let dt = (now - last) / 1000; last = now;
+  if (!(dt > 0)) dt = 0;
+  if (dt > .06) dt = .06;
+  T += dt; acc += dt;
+  let guard = 0;
+  while (acc >= FIXED && guard++ < 6) { acc -= FIXED; update(FIXED); }
+  if (guard >= 6) acc = 0;
+  render(T);
+  requestAnimationFrame(frame);
+}
+
+/* ── راه‌اندازی ─────────────────────────────────────────── */
+reset();
+mode = 'ready';
+overlay({
+  eyebrow: '3D NEON ARENA', title: 'مار سه‌بعدی',
+  message: 'مار را در میدان نئونی بچرخان، سیب‌ها را بخور و بزرگ شو!<br>دوربین را با درگ ماوس یا <kbd>Q</kbd> <kbd>E</kbd> بچرخان و با چرخ ماوس زوم کن.',
+  btn: 'شروع بازی', modes: true,
+  stats: best > 0 ? 'رکورد تو: ' + fa(best) + ' امتیاز · مرحله ' + fa(bestLvl) : ''
+});
+hud();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
