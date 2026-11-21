@@ -1,14 +1,1640 @@
-<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>نئون ران | مسابقه شبانه</title><style>
-*{box-sizing:border-box}body{margin:0;background:#0d0b17;color:#faf5ff;font:16px Tahoma,Arial,sans-serif}main{max-width:1100px;margin:auto;padding:24px}header,footer,.hud{display:flex;align-items:center;justify-content:space-between;gap:12px}header{margin-bottom:20px}.brand{font:italic 900 27px Arial;letter-spacing:-1px}.brand b{color:#ff478c}.tag,.label,footer{color:#b8a9c9;font-size:12px}.tag{border:1px solid #392a4a;padding:8px 12px;border-radius:20px}.game{position:relative;overflow:hidden;border:1px solid #473451;border-radius:22px;background:#1d1229;box-shadow:0 20px 65px #0008}canvas{display:block;width:100%;height:clamp(390px,65vh,650px)}.hud{position:absolute;top:16px;inset-inline:16px;pointer-events:none}.stat{background:#130b20d9;border:1px solid #66416c;border-radius:12px;padding:9px 14px;min-width:85px;text-align:center}.stat strong{display:block;font:800 23px Arial;margin-top:3px;color:#fff}.overlay{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(#10091c20,#12091caa);text-align:center;padding:60px 12px 95px}.overlay[hidden]{display:none}.eyebrow{color:#ff85b4;font:700 11px Arial;letter-spacing:4px;direction:ltr}h1{font-size:clamp(38px,8vw,83px);line-height:1;margin:14px 0;text-shadow:0 0 35px #ff338c80}p{color:#f1deff;line-height:1.8;margin:0 0 20px}button{border:0;font:700 15px Tahoma;color:#19091c;background:#ff589b;border-radius:10px;padding:12px 25px;cursor:pointer;box-shadow:0 0 24px #ff489456}button:focus-visible{outline:3px solid white;outline-offset:3px}.controls{position:absolute;bottom:13px;inset-inline:15px;display:flex;justify-content:space-between;direction:ltr;pointer-events:none}.controls button{pointer-events:auto;background:#1b1029e8;color:#fff;border:1px solid #855482;box-shadow:none;padding:10px 16px;touch-action:none}.controls span{display:flex;gap:6px}footer{margin-top:16px;flex-wrap:wrap}kbd{display:inline-block;background:#231932;padding:4px 7px;border-radius:4px;color:white;direction:ltr}@media(max-width:500px){main{padding:12px}.stat{min-width:70px;padding:6px}.tag{font-size:10px}}
-</style><main><header><div class="brand" dir="ltr">NEON<b>RUN</b></div><div class="tag">● مسابقهٔ شبانه</div></header><section class="game" aria-label="بازی ماشین‌سواری"><canvas id="road"></canvas><div class="hud"><div class="stat"><div class="label">سرعت · km/h</div><strong id="speed">۰</strong></div><div class="stat"><div class="label">مسافت · متر</div><strong id="score">۰</strong></div><div class="stat"><div class="label">رکورد · متر</div><strong id="best">۰</strong></div></div><div class="overlay" id="overlay"><div><div class="eyebrow">MIDNIGHT HIGHWAY</div><h1 id="title">نئون ران</h1><p id="message">در بزرگراه نئونی از ماشین‌ها جاخالی بده و رکورد بزن.</p><button id="start">شروع مسابقه ←</button></div></div><div class="controls"><span><button data-key="ArrowLeft" aria-label="چپ">←</button><button data-key="ArrowRight" aria-label="راست">→</button></span><span><button data-key="ArrowDown" aria-label="ترمز">ترمز</button><button data-key="ArrowUp" aria-label="گاز">گاز</button></span></div></section><footer><span>فرمان <kbd>← →</kbd> گاز و ترمز <kbd>↑ ↓</kbd> مکث <kbd>P</kbd></span><span>نئون ران / بزرگراه نیمه‌شب</span></footer></main><script>
-const $=id=>document.getElementById(id),canvas=$('road'),c=canvas.getContext('2d'),keys=new Set();let w,h,mode='ready',speed=0,dist=0,best=0,x=0,traffic=[],spawn=0,last=0;try{best=+localStorage.neonBest||0}catch{}const fa=n=>Math.floor(n).toLocaleString('fa-IR');$('best').textContent=fa(best);
-function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);w=r.width;h=r.height;canvas.width=w*d;canvas.height=h*d;c.setTransform(d,0,0,d,0,0)}new ResizeObserver(resize).observe(canvas);resize();
-function poly(color,...p){c.fillStyle=color;c.beginPath();c.moveTo(...p[0]);for(const q of p.slice(1))c.lineTo(...q);c.closePath();c.fill()}
-function box(color,x,y,w,h){c.fillStyle=color;c.fillRect(x,y,w,h)}
-function car(cx,y,s,color){const p=(a,b)=>[cx+a*s,y+b*s];poly('#080611aa',p(-52,2),p(52,2),p(64,10),p(-64,10));box('#0b0913',cx-43*s,y-19*s,16*s,22*s);box('#0b0913',cx+27*s,y-19*s,16*s,22*s);poly(color,p(-49,-8),p(-46,-28),p(-29,-49),p(27,-49),p(46,-28),p(49,-8),p(39,-2),p(-39,-2));poly('#221332',p(-33,-28),p(-23,-44),p(22,-44),p(33,-28));poly('#91629d',p(-23,-44),p(22,-44),p(26,-39),p(-26,-39));box('#231328',cx-44*s,y-24*s,88*s,14*s);c.shadowColor='#ff287b';c.shadowBlur=12*s;box('#ff5a94',cx-42*s,y-22*s,25*s,5*s);box('#ff5a94',cx+17*s,y-22*s,25*s,5*s);c.shadowBlur=0;box('#fbd5a9',cx-8*s,y-15*s,16*s,5*s)}
-const rnd=i=>{let v=Math.sin(i*127.1+91.7)*43758.5453;return v-Math.floor(v)};
-function draw(){const hy=h*.48,R=w*.46,Y=t=>hy+(h-hy)*t,X=(a,t)=>w/2+a*(13+R*t);let sky=c.createLinearGradient(0,0,0,hy);sky.addColorStop(0,'#140d2d');sky.addColorStop(.65,'#512457');sky.addColorStop(1,'#bc507b');box(sky,0,0,w,h);for(let i=0;i<95;i++)box(i%7?'#e7b3ee66':'#fff1df',rnd(i)*w,rnd(i+120)*hy*.92,i%7?1:2,1);let r=Math.min(w*.12,h*.19),sy=hy*.76;let sun=c.createLinearGradient(0,sy-r,0,sy+r);sun.addColorStop(0,'#ffce94');sun.addColorStop(1,'#ff448d');c.save();c.beginPath();c.arc(w/2,sy,r,0,7);c.clip();box(sun,w/2-r,sy-r,r*2,r*2);for(let i=0;i<8;i++)box('#702950',w/2-r,sy+i*r/8,r*2,1+i*.55);c.restore();for(let i=0;i<55;i++){let bw=w/54,bh=8+rnd(i+20)*hy*.32*(.4+.6*Math.abs(i-27)/27),bx=i*bw;box(i%2?'#21142f':'#301739',bx,hy-bh,bw-1,bh);for(let j=5;j<bh-4;j+=7)if(rnd(i*21+j)>.48)box(j%2?'#ed83a57a':'#ffd79a88',bx+bw*.3,hy-bh+j,2,2)}box('#1e102b',0,hy,w,h-hy);poly('#29243b',[X(-1,0),hy],[X(1,0),hy],[X(1,1),h],[X(-1,1),h]);for(const a of [-1,1])poly('#ff508e',[X(a,0),hy],[X(a,1),h],[X(a*1.018,1),h],[X(a*1.018,0),hy]);const phase=(dist/19)%1;for(let i=0;i<20;i++){let z=(i+phase)/20,t=z*z,b=Math.min(1,(z+.027)**2);for(const a of [-1/3,1/3])poly('#dec6df',[X(a-.008,t),Y(t)],[X(a+.008,t),Y(t)],[X(a+.008,b),Y(b)],[X(a-.008,b),Y(b)]);for(const a of [-1.22,1.22]){const xx=X(a,t);box('#592951',xx,Y(t)-t*50,1+t*3,t*50);box('#ff85bd',xx-t*5,Y(t)-t*50,2+t*12,1+t*3)}}for(const o of [...traffic].sort((a,b)=>a.z-b.z)){let t=o.z**2;car(X(o.x,t),Y(t),(.1+t)*Math.min(1,w/650),o.color)}car(X(x,.89),Y(.89),Math.min(1.1,w/540),'#a452ff')}
-function show(title,message,button){$('title').textContent=title;$('message').textContent=message;$('start').textContent=button;$('overlay').hidden=false}function start(){if(mode!=='paused'){speed=85;dist=0;x=0;traffic=[];spawn=.6}mode='play';$('overlay').hidden=true;$('start').blur()}$('start').onclick=start;function pause(){if(mode==='play'){mode='paused';keys.clear();show('مکث','هر وقت آماده‌ای، به بزرگراه برگرد.','ادامهٔ مسابقه')}else if(mode==='paused')start()}
-function tick(time){let dt=Math.min((time-last)/1000,.04);last=time;if(mode==='play'){const held=k=>keys.has(k);speed=Math.max(55,Math.min(240,speed+(held('ArrowDown')?-110:held('ArrowUp')?80:(115-speed)*.9)*dt));dist+=speed/3.6*dt;x=Math.max(-.83,Math.min(.83,x+(Number(held('ArrowRight'))-Number(held('ArrowLeft')))*dt*1.42));spawn-=dt;if(spawn<=0){traffic.push({x:[-.65,0,.65][Math.floor(Math.random()*3)],z:.05,color:['#f95aaa','#48d8d4','#ffc164'][Math.floor(Math.random()*3)]});spawn=Math.max(.57,1.35-dist/2200)}for(const o of traffic){o.z+=dt*speed/335;if(o.z>.865&&o.z<.99&&Math.abs(o.x-x)<Math.min(.32,105/w)){mode='over';speed=0;keys.clear();if(dist>best){best=dist;try{localStorage.neonBest=Math.floor(best)}catch{}}show('پایان مسابقه',`مسافت طی‌شده: ${fa(dist)} متر`,'تلاش دوباره ←');break}}traffic=traffic.filter(o=>o.z<1.04);$('speed').textContent=fa(speed);$('score').textContent=fa(dist);$('best').textContent=fa(best)}draw();requestAnimationFrame(tick)}requestAnimationFrame(tick);
-addEventListener('keydown',e=>{if(e.key.startsWith('Arrow')&&mode==='play'){e.preventDefault();keys.add(e.key)}if(e.code==='KeyP'&&!e.repeat)pause()});addEventListener('keyup',e=>keys.delete(e.key));addEventListener('blur',()=>{keys.clear();if(mode==='play')pause()});for(const b of document.querySelectorAll('[data-key]')){b.onpointerdown=e=>{if(mode!=='play')return;e.preventDefault();b.setPointerCapture(e.pointerId);keys.add(b.dataset.key)};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>keys.delete(b.dataset.key)}
-</script></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05090f">
+<meta name="color-scheme" content="dark">
+<title>مار نئون | بازی کلاسیک مار</title>
+<meta name="description" content="بازی مار نئون: سیب بخور، بلندتر شو و رکورد بزن. ساخته‌شده با HTML، CSS و JavaScript خالص.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23071119'/%3E%3Cpath d='M25 62h20M25 45h32M25 28h20M45 28v17' stroke='%234dffb8' stroke-width='11' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='70' cy='62' r='11' fill='%23ff5b74'/%3E%3C/svg%3E">
+<style>
+  @font-face{
+    font-family:"Vazirmatn";
+    src:url("fonts/Vazirmatn-Variable.woff2") format("woff2");
+    font-weight:100 900;
+    font-style:normal;
+    font-display:swap;
+  }
+  :root{
+    --bg:#05090f;
+    --line:#17303f;
+    --line-soft:#122634;
+    --text:#e9fff6;
+    --muted:#88a8a0;
+    --mint:#4dffb8;
+    --gold:#ffc857;
+    --shadow:0 24px 60px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    overscroll-behavior-y:contain;
+    min-height:100vh;
+    min-height:100dvh;
+    color:var(--text);
+    font-family:"Vazirmatn","Segoe UI",Tahoma,system-ui,sans-serif;
+    background:
+      radial-gradient(900px 520px at 88% -10%, rgba(20,90,74,.55) 0%, transparent 60%),
+      radial-gradient(760px 440px at 0% 105%, rgba(28,34,92,.55) 0%, transparent 60%),
+      radial-gradient(520px 340px at 50% 40%, rgba(10,30,34,.5) 0%, transparent 70%),
+      var(--bg);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--mint);color:#04120c}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 18px 26px}
+
+  /* ---------- header ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:11px;min-width:0}
+  .brand .mark{
+    width:42px;height:42px;border-radius:13px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(140deg,#6dffc6,#17a877);
+    color:#04130d;box-shadow:0 0 26px rgba(77,255,184,.32), inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  .brand .mark svg{width:24px;height:24px;display:block}
+  .brand h1{font-size:20px;font-weight:800;margin:0;line-height:1.2;letter-spacing:-.2px}
+  .brand p{margin:2px 0 0;font-size:11px;color:var(--muted);letter-spacing:.6px}
+  .brand p b{color:var(--mint);font-weight:700}
+  .top-actions{display:flex;align-items:center;gap:8px}
+  .icon-btn{
+    width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(11,25,36,.8);color:var(--text);font-size:17px;line-height:1;
+    display:grid;place-items:center;cursor:pointer;transition:transform .15s, border-color .15s, background .15s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .icon-btn:hover:not(:disabled){border-color:#2f6f61;background:#0f2230;transform:translateY(-1px)}
+  .icon-btn:active:not(:disabled){transform:translateY(0) scale(.96)}
+  .icon-btn:disabled{opacity:.4;cursor:not-allowed}
+  .icon-btn:focus-visible,.btn:focus-visible,.chip:focus-visible,.dpad button:focus-visible,
+  .switch input:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+
+  /* ---------- layout ---------- */
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:18px;align-items:start}
+
+  /* ---------- game card ---------- */
+  body[data-state="playing"] .board-card{
+    border-color:#245544;
+    box-shadow:var(--shadow), 0 0 0 1px rgba(77,255,184,.12), 0 0 46px rgba(77,255,184,.10);
+  }
+  .board-card{
+    transition:border-color .3s, box-shadow .3s;
+    position:relative;width:100%;
+    max-width:clamp(300px, calc(100vh - 250px), 640px);
+    max-width:clamp(300px, calc(100dvh - 250px), 640px);
+    margin-inline:auto;
+    border:1px solid var(--line);border-radius:26px;padding:14px;
+    background:linear-gradient(180deg,#0c1a26 0%,#08131c 60%,#070f16 100%);
+    box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+  .stat{
+    position:relative;overflow:hidden;border:1px solid var(--line-soft);border-radius:12px;
+    padding:8px 10px 7px;background:linear-gradient(180deg,rgba(13,31,43,.9),rgba(8,20,29,.9));
+  }
+  .stat::after{
+    content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:2px;
+    background:linear-gradient(var(--mint),transparent);opacity:.55;
+  }
+  .stat span{display:block;font-size:10.5px;color:var(--muted);margin-bottom:1px;white-space:nowrap}
+  .stat strong{
+    display:block;font-size:19px;font-weight:800;line-height:1.15;letter-spacing:.3px;
+    font-variant-numeric:tabular-nums;color:#eafff7;
+  }
+  .stat.best::after{background:linear-gradient(var(--gold),transparent)}
+  .stat.best strong{color:var(--gold)}
+  .stat.best.pop strong{animation:pop .5s ease}
+  @keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.22)}100%{transform:scale(1)}}
+
+  .canvas-wrap{
+    position:relative;border-radius:17px;overflow:hidden;
+    border:1px solid #17303d;background:#061019;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.55);
+  }
+  canvas{display:block;width:100%;height:auto;aspect-ratio:1/1;touch-action:none;cursor:pointer}
+
+  /* ---------- overlay ---------- */
+  .overlay{
+    position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;
+    background:radial-gradient(circle at 50% 38%, rgba(6,18,24,.62), rgba(3,9,14,.9));
+    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    animation:fadeIn .25s ease;
+  }
+  .overlay[hidden]{display:none}
+  .board-card > .overlay{border-radius:25px}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .ov-card{
+    width:100%;max-width:352px;margin:auto;text-align:center;
+    background:linear-gradient(180deg,rgba(10,24,34,.95),rgba(6,16,23,.96));
+    border:1px solid #204651;border-radius:20px;padding:22px 20px 18px;
+    box-shadow:0 26px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+    animation:rise .28s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+  .eyebrow{font-size:10px;font-weight:800;letter-spacing:3.4px;color:#5fe9bd;direction:ltr;text-transform:uppercase}
+  .ov-card h2{
+    margin:8px 0 7px;font-size:clamp(26px,5.4vw,34px);line-height:1.15;font-weight:900;letter-spacing:-.5px;
+    background:linear-gradient(100deg,#d8fff0,#4dffb8 55%,#8ef7ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .ov-card p{margin:0 0 15px;font-size:13.5px;line-height:1.85;color:#bcd8d0}
+  .ov-card p b{color:var(--mint);font-weight:800}
+  .chips{
+    display:flex;gap:5px;padding:4px;margin:0 0 15px;
+    background:#07141d;border:1px solid var(--line);border-radius:12px;
+  }
+  .chips[hidden]{display:none}
+  .chip{
+    flex:1;min-width:0;border:0;border-radius:9px;background:transparent;color:#8baca4;
+    padding:8px 4px;font:700 12.5px/1 "Vazirmatn",Tahoma,sans-serif;cursor:pointer;
+    transition:background .15s,color .15s;
+  }
+  .chip:hover{color:#cdfbe9}
+  .chip[aria-pressed="true"]{background:linear-gradient(180deg,#14483a,#10382e);color:#a9ffdd;box-shadow:inset 0 0 0 1px #2e7a62}
+  .ov-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:2px 0 16px}
+  .ov-stats[hidden]{display:none}
+  .ov-stats div{background:#091b16;border:1px solid #1d4638;border-radius:10px;padding:8px 4px}
+  .ov-stats span{display:block;font-size:10px;color:#84ab9d;margin-bottom:2px}
+  .ov-stats strong{font-size:19px;color:#c2ffe8;font-variant-numeric:tabular-nums}
+  .record-ribbon{
+    display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;padding:6px 12px;border-radius:999px;
+    background:linear-gradient(90deg,rgba(255,200,87,.16),rgba(255,200,87,.06));
+    border:1px solid rgba(255,200,87,.45);color:var(--gold);font-size:11.5px;font-weight:800;
+  }
+  .record-ribbon[hidden]{display:none}
+
+  .btn{
+    border:0;border-radius:12px;padding:13px 24px;cursor:pointer;
+    font:800 15px/1 "Vazirmatn",Tahoma,sans-serif;letter-spacing:.1px;
+    transition:transform .15s, filter .15s, box-shadow .15s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn.primary{
+    width:100%;color:#04150f;
+    background:linear-gradient(140deg,#7dffcd,#35e2a5 45%,#12b47f);
+    box-shadow:0 12px 30px rgba(77,255,184,.22), inset 0 1px 0 rgba(255,255,255,.55);
+  }
+  .btn.primary:hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .btn.primary:active{transform:translateY(0) scale(.985)}
+  .btn.ghost{
+    width:100%;margin-top:12px;color:#c9f5e6;background:#0c2330;border:1px solid #255263;
+    font-size:13.5px;padding:11px 18px;
+  }
+  .btn.ghost:hover{background:#10303f;border-color:#33718a}
+  .ov-hint{margin:11px 0 0;font-size:10.5px;color:#6f938b;letter-spacing:.2px}
+  .ov-hint kbd{margin:0 2px}
+
+  kbd{
+    display:inline-block;min-width:20px;padding:2px 6px;border-radius:5px;margin-inline:1px;
+    background:#152b36;border:1px solid #274857;border-bottom-width:2px;
+    color:#dffdf1;font:700 11px/1.2 "Segoe UI",Tahoma,sans-serif;direction:ltr;text-align:center;
+  }
+
+  /* ---------- touch pad ---------- */
+  .dpad{
+    display:none;margin-top:10px;gap:6px;justify-content:center;direction:ltr;
+    grid-template-columns:repeat(3,minmax(48px,66px));grid-template-rows:repeat(3,46px);
+  }
+  .dpad button{
+    border:1px solid #29505c;border-radius:13px;background:linear-gradient(180deg,#122a36,#0d1f29);
+    color:#d6fff0;font-size:19px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;
+    box-shadow:0 3px 0 #07141b;transition:transform .06s,background .12s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .dpad button.active,.dpad button:active{background:#1b5547;transform:translateY(2px);box-shadow:0 1px 0 #07141b}
+  .dpad .up{grid-area:1/2}.dpad .left{grid-area:2/1}.dpad .down{grid-area:3/2}.dpad .right{grid-area:2/3}
+  .dpad .center{
+    grid-area:2/2;place-self:center;width:46px;height:46px;display:grid;place-items:center;
+    border:1px dashed #2c5b57;border-radius:50%;
+    background:rgba(14,42,38,.65);color:#8be9c4;font-size:13px;box-shadow:none;
+  }
+  .dpad .center:active{background:#1b5547;transform:translateY(2px);box-shadow:none}
+
+  /* ---------- side panels ---------- */
+  .side{display:grid;gap:14px}
+  .panel{
+    border:1px solid var(--line);border-radius:18px;padding:15px 16px;
+    background:linear-gradient(180deg,rgba(12,26,39,.92),rgba(8,17,25,.94));
+    box-shadow:0 14px 34px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.035);
+  }
+  .panel h2{
+    display:flex;align-items:center;gap:7px;margin:0 0 11px;
+    font-size:11.5px;font-weight:800;color:#8fb4aa;letter-spacing:.4px;
+  }
+  .panel h2::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--mint);box-shadow:0 0 8px var(--mint)}
+  .record{display:flex;align-items:baseline;gap:8px}
+  .record .trophy{font-size:24px;line-height:1;filter:drop-shadow(0 0 10px rgba(255,200,87,.35))}
+  .record strong{font-size:36px;line-height:1;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:-1px}
+  .record .unit{font-size:11px;color:var(--muted)}
+  .muted{color:var(--muted);font-size:12px;line-height:1.8}
+  .panel .muted{margin:9px 0 0}
+  .keys{display:grid;gap:9px}
+  .keys>div{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:#b8d8ce}
+  .keys>div>span:last-child{display:flex;gap:3px;direction:ltr}
+  .legend{display:grid;gap:8px;font-size:12px;color:#b8d8ce}
+  .legend>div{display:flex;align-items:center;gap:8px}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .dot.apple{background:radial-gradient(circle at 35% 30%,#ffb1bf,#ff4b68 60%);box-shadow:0 0 10px rgba(255,91,116,.55)}
+  .dot.star{
+    border-radius:2px;transform:rotate(45deg);background:linear-gradient(135deg,#ffe6a4,#ffb627);
+    box-shadow:0 0 10px rgba(255,200,87,.5);
+  }
+  .dot.snake{background:linear-gradient(90deg,#a8ffdc,#1fa87a);box-shadow:0 0 10px rgba(77,255,184,.55)}
+  .switch{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:#b8d8ce;cursor:pointer}
+  .switch input{
+    appearance:none;-webkit-appearance:none;flex:none;width:44px;height:25px;border-radius:999px;
+    background:#152a38;border:1px solid #264553;position:relative;cursor:pointer;transition:background .18s,border-color .18s;
+    margin:0;direction:ltr;
+  }
+  .switch input::after{
+    content:"";position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;
+    background:#6e8f93;transition:transform .18s, background .18s;
+  }
+  .switch input:checked{background:#114d3a;border-color:#2c8b6c}
+  .switch input:checked::after{transform:translateX(19px);background:var(--mint);box-shadow:0 0 10px rgba(77,255,184,.6)}
+
+  /* ---------- footer ---------- */
+  footer{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;
+    margin-top:18px;padding-top:14px;border-top:1px solid rgba(23,48,63,.7);
+    color:#63847c;font-size:11px;line-height:1.9;
+  }
+  footer b{color:#8fb4aa;font-weight:700}
+  .foot-link{color:#9fe9d3;text-decoration:none;border-bottom:1px dashed #2c6b58;padding-bottom:1px}
+  .foot-link:hover{color:#d6fff0;border-color:#4dffb8}
+  .foot-hints{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  noscript{
+    display:block;margin:20px auto;max-width:560px;padding:14px 16px;border-radius:12px;
+    background:#2a1216;border:1px solid #642633;color:#ffbdc7;text-align:center;font-size:13px;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:899px){
+    .wrap{padding:14px 12px 22px}
+    .layout{grid-template-columns:1fr;gap:14px}
+    .side{grid-template-columns:1fr;gap:12px}
+    .board-card{
+      max-width:clamp(240px, calc(100vh - 345px), 560px);
+      max-width:clamp(240px, calc(100dvh - 330px), 560px);
+      padding:10px;border-radius:22px;
+    }
+    .hud{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:9px}
+    .stat{padding:6px 8px 5px;border-radius:10px}
+    .stat span{font-size:9.5px}
+    .stat strong{font-size:16px}
+    .topbar{margin-bottom:14px}
+    .brand h1{font-size:18px}
+    .brand .mark{width:38px;height:38px;border-radius:11px}
+    .icon-btn{width:38px;height:38px;font-size:15px;border-radius:10px}
+    footer{font-size:10.5px}
+  }
+  @media (max-width:420px){
+    .wrap{padding:12px 9px 18px}
+    .brand p{font-size:10px}
+    .hud{gap:5px}
+    .stat span{font-size:9px}
+    .stat strong{font-size:15px}
+  }
+  @media (pointer:coarse),(max-width:899px){
+    .dpad{display:grid}
+    .keys-panel{display:none}
+  }
+  body.touch .dpad{display:grid}
+  body.touch .keys-panel{display:none}
+  @media (max-height:700px){
+    .board-card{max-width:clamp(220px, calc(100vh - 330px), 420px);max-width:clamp(220px, calc(100dvh - 330px), 420px)}
+    .hud{margin-bottom:8px}
+    .dpad{margin-top:8px;grid-template-rows:repeat(3,42px)}
+    .brand p{display:none}
+  }
+  @media (max-height:640px),(max-width:380px){
+    .ov-card{padding:14px 14px 12px;border-radius:16px}
+    .ov-card h2{font-size:23px;margin:5px 0 4px}
+    .ov-card p{font-size:12px;line-height:1.65;margin-bottom:10px}
+    .eyebrow{font-size:9px;letter-spacing:2.6px}
+    .chips{margin-bottom:10px;padding:3px}
+    .chip{padding:7px 3px;font-size:11.5px}
+    .ov-stats{margin:0 0 10px;gap:5px}
+    .ov-stats div{padding:6px 3px}
+    .ov-stats strong{font-size:16px}
+    .btn{padding:11px 20px;font-size:14px}
+    .btn.ghost{margin-top:9px;padding:9px 14px;font-size:12.5px}
+    .ov-hint{margin-top:8px;font-size:9.5px}
+    .record-ribbon{margin-bottom:8px;padding:4px 10px;font-size:10.5px}
+    .overlay{padding:10px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 18h6M6 12h9M6 6h6M15 6v6"/>
+          <circle cx="18.5" cy="18" r="2.6" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1>مار نئون</h1>
+        <p dir="ltr"><b>NEON SNAKE</b> · CLASSIC ARCADE</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="soundBtn" type="button" aria-label="صدا روشن است" aria-pressed="true">🔊</button>
+      <button class="icon-btn" id="pauseBtn" type="button" aria-label="مکث" disabled>⏸</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="board-card" aria-label="صفحه بازی">
+      <div class="hud" aria-live="off">
+        <div class="stat"><span>امتیاز</span><strong id="score">۰</strong></div>
+        <div class="stat best" id="bestStat"><span>رکورد</span><strong id="best">۰</strong></div>
+        <div class="stat"><span>مرحله</span><strong id="level">۱</strong></div>
+        <div class="stat"><span>طول مار</span><strong id="length">۴</strong></div>
+      </div>
+
+      <div class="canvas-wrap" id="stage">
+        <canvas id="board" width="640" height="640" aria-label="زمین بازی مار؛ با کلیدهای جهت‌دار یا کشیدن انگشت حرکت کنید"></canvas>
+      </div>
+
+      <div class="dpad" aria-label="دکمه‌های حرکت">
+        <button type="button" class="up" data-dir="up" aria-label="بالا">▲</button>
+        <button type="button" class="left" data-dir="left" aria-label="چپ">◀</button>
+        <button type="button" class="center" id="centerPause" aria-label="مکث">⏸</button>
+        <button type="button" class="right" data-dir="right" aria-label="راست">▶</button>
+        <button type="button" class="down" data-dir="down" aria-label="پایین">▼</button>
+      </div>
+      <div class="overlay" id="overlay" role="dialog" aria-labelledby="ovTitle">
+        <div class="ov-card">
+          <div class="eyebrow" id="ovEyebrow">NEON SNAKE</div>
+          <h2 id="ovTitle">مار نئون</h2>
+          <p id="ovText">سیب‌ها را بخور، بلندتر شو و از دیوار و دُم خودت دوری کن.</p>
+          <div class="record-ribbon" id="recordRibbon" hidden>🏆 رکورد جدید زدی!</div>
+          <div class="chips" id="diffGroup" aria-label="سطح سختی">
+            <button type="button" class="chip" data-diff="easy" aria-pressed="false">آرام</button>
+            <button type="button" class="chip" data-diff="normal" aria-pressed="true">معمولی</button>
+            <button type="button" class="chip" data-diff="hard" aria-pressed="false">سریع</button>
+          </div>
+          <div class="ov-stats" id="ovStats" hidden>
+            <div><span>امتیاز</span><strong id="ovScore">۰</strong></div>
+            <div><span>رکورد</span><strong id="ovBest">۰</strong></div>
+            <div><span>سیب‌ها</span><strong id="ovApples">۰</strong></div>
+          </div>
+          <button type="button" class="btn primary" id="ovBtn">شروع بازی</button>
+          <p class="ov-hint" id="ovHint">با <kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd><kbd>←</kbd> یا کشیدن انگشت حرکت کن</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h2>رکورد تو</h2>
+        <div class="record">
+          <span class="trophy" aria-hidden="true">🏆</span>
+          <strong id="sideBest">۰</strong>
+          <span class="unit">امتیاز</span>
+        </div>
+        <p class="muted">هر سیب <b>۱۰</b> امتیاز و هر ستاره طلایی <b>۵۰</b> امتیاز دارد. هرچه بیشتر بخوری، مار سریع‌تر می‌شود.</p>
+      </section>
+
+      <section class="panel">
+        <h2>راهنمای بازی</h2>
+        <div class="legend">
+          <div><span class="dot apple"></span><span>سیب: +۱۰ امتیاز و یک بند به مار</span></div>
+          <div><span class="dot star"></span><span>ستاره: +۵۰ امتیاز، فرصت کوتاه</span></div>
+          <div><span class="dot snake"></span><span>به خودت یا دیوار نخور!</span></div>
+        </div>
+      </section>
+
+      <section class="panel keys-panel">
+        <h2>کلیدها</h2>
+        <div class="keys">
+          <div><span>حرکت</span><span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span></div>
+          <div><span>حرکت (WASD)</span><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></div>
+          <div><span>مکث / ادامه</span><span><kbd>P</kbd><kbd>Space</kbd></span></div>
+          <div><span>شروع دوباره</span><span><kbd>R</kbd></span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>تنظیمات</h2>
+        <label class="switch"><span>عبور از دیوار</span><input type="checkbox" id="wrapToggle"></label>
+        <p class="muted">وقتی روشن باشد، مار از لبه صفحه به طرف مقابل می‌رود.</p>
+        <button type="button" class="btn ghost" id="newGameBtn">بازی جدید</button>
+      </section>
+    </aside>
+  </main>
+
+  <footer>
+    <span><b>مار نئون</b> — ساخته‌شده با HTML، CSS و JavaScript خالص، بدون هیچ کتابخانه.</span>
+    <span class="foot-hints"><a class="foot-link" href="neon-run.html">🏎 نئون ران</a><span>مکث: <kbd>P</kbd></span><span>شروع: <kbd>Space</kbd></span><span>صدا: <kbd>M</kbd></span></span>
+  </footer>
+</div>
+
+<noscript>برای اجرای بازی باید JavaScript مرورگر فعال باشد.</noscript>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ============================================================
+     عناصر صفحه
+  ============================================================ */
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const canvas = $('#board');
+  const ctx = canvas.getContext('2d');
+  const stage = $('#stage');
+  const overlay = $('#overlay');
+  const ovTitle = $('#ovTitle');
+  const ovText = $('#ovText');
+  const ovBtn = $('#ovBtn');
+  const ovStats = $('#ovStats');
+  const ovScore = $('#ovScore');
+  const ovBest = $('#ovBest');
+  const ovApples = $('#ovApples');
+  const ovHint = $('#ovHint');
+  const recordRibbon = $('#recordRibbon');
+  const diffGroup = $('#diffGroup');
+  const scoreEl = $('#score');
+  const bestEl = $('#best');
+  const levelEl = $('#level');
+  const lengthEl = $('#length');
+  const sideBestEl = $('#sideBest');
+  const pauseBtn = $('#pauseBtn');
+  const centerPause = $('#centerPause');
+  const soundBtn = $('#soundBtn');
+  const wrapToggle = $('#wrapToggle');
+  const newGameBtn = $('#newGameBtn');
+  const bestStat = $('#bestStat');
+
+  /* ============================================================
+     ثابت‌ها
+  ============================================================ */
+  const COLS = 20;
+  const ROWS = 20;
+  const DIFFS = {
+    easy:   { base: 185, min: 105, step: 4, label: 'آرام' },
+    normal: { base: 150, min: 80,  step: 5, label: 'معمولی' },
+    hard:   { base: 115, min: 60,  step: 4, label: 'سریع' }
+  };
+  const DIRS = {
+    up:    { x: 0, y: -1 },
+    down:  { x: 0, y: 1 },
+    left:  { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+  };
+  const HEAD_COLOR = [132, 255, 199];
+  const TAIL_COLOR = [16, 116, 88];
+  const BONUS_TTL = 6500;
+
+  /* ============================================================
+     ذخیره‌سازی و ابزارها
+  ============================================================ */
+  const store = {
+    get(key, fallback) {
+      try {
+        const v = localStorage.getItem(key);
+        return v === null ? fallback : v;
+      } catch (e) { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem(key, String(value)); } catch (e) { /* حافظه در دسترس نیست */ }
+    }
+  };
+
+  const fa = n => Number(n || 0).toLocaleString('fa-IR');
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const reducedMotion = (() => {
+    try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+  })();
+
+  function mixColor(a, b, t) {
+    const r = Math.round(a[0] + (b[0] - a[0]) * t);
+    const g = Math.round(a[1] + (b[1] - a[1]) * t);
+    const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+  }
+
+  /* ============================================================
+     صدا (Web Audio — اختیاری)
+  ============================================================ */
+  let audioCtx = null;
+  function playTone(freq, delay, duration, type, volume, endFreq) {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    if (endFreq) {
+      try { osc.frequency.exponentialRampToValueAtTime(Math.max(30, endFreq), t0 + duration); } catch (e) {}
+    }
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(volume, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.04);
+  }
+
+  function unlockAudio() {
+    try {
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return;
+      if (!audioCtx) audioCtx = new AudioCtor();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) { /* صدا اختیاری است */ }
+  }
+
+  function sound(name) {
+    if (muted) return;
+    try {
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return;
+      if (!audioCtx) audioCtx = new AudioCtor();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (name === 'eat') {
+        playTone(520, 0, 0.09, 'triangle', 0.055, 760);
+      } else if (name === 'bonus') {
+        playTone(660, 0, 0.09, 'square', 0.035, 880);
+        playTone(990, 0.09, 0.14, 'square', 0.03, 1320);
+      } else if (name === 'start') {
+        playTone(392, 0, 0.1, 'triangle', 0.045, 523);
+        playTone(659, 0.09, 0.16, 'triangle', 0.04);
+      } else if (name === 'click') {
+        playTone(300, 0, 0.05, 'sine', 0.03);
+      } else if (name === 'die') {
+        playTone(300, 0, 0.34, 'sawtooth', 0.05, 60);
+        playTone(150, 0.04, 0.42, 'square', 0.03, 45);
+      }
+    } catch (e) { /* اگر مرورگر صدا را نپذیرفت، بازی ادامه دارد */ }
+  }
+
+  /* ============================================================
+     وضعیت بازی
+  ============================================================ */
+  let best = Math.max(0, Number(store.get('neonSnake.best', 0)) || 0);
+  let muted = store.get('neonSnake.muted', '0') === '1';
+  let wrap = store.get('neonSnake.wrap', '0') === '1';
+  let difficulty = store.get('neonSnake.diff', 'normal');
+  if (!DIFFS[difficulty]) difficulty = 'normal';
+
+  let state = 'ready';            // ready | playing | paused | over
+  let snake = [];
+  let prevSnake = [];
+  let dir = DIRS.right;
+  let queue = [];
+  let food = null;
+  let bonus = null;
+  let score = 0;
+  let apples = 0;
+  let interval = DIFFS[difficulty].base;
+  let acc = 0;
+  let particles = [];
+  let floaters = [];
+  let shake = 0;
+  let flash = 0;
+  let lastTs = 0;
+  let animT = 0;
+  let deathCause = 'wall';
+  let pointerStart = null;
+  let newRecord = false;
+  let view = { w: 320, h: 320, cell: 16, ox: 0, oy: 0, dpr: 1 };
+
+  /* ============================================================
+     اندازه بوم
+  ============================================================ */
+  function resize() {
+    const w = canvas.clientWidth || 320;
+    const h = canvas.clientHeight || 320;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const pw = Math.max(1, Math.round(w * dpr));
+    const ph = Math.max(1, Math.round(h * dpr));
+    if (canvas.width !== pw || canvas.height !== ph) {
+      canvas.width = pw;
+      canvas.height = ph;
+    }
+    const cell = Math.min(w, h) / COLS;
+    view = {
+      w: w,
+      h: h,
+      cell: cell,
+      ox: (w - cell * COLS) / 2,
+      oy: (h - cell * ROWS) / 2,
+      dpr: dpr
+    };
+  }
+
+  try {
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+      document.body.classList.add('touch');
+    }
+  } catch (e) { /* اختیاری */ }
+
+  let bgCanvas = null;
+  let bgKey = '';
+
+  function ensureBackground() {
+    const key = view.w + 'x' + view.h + '@' + view.dpr;
+    if (bgKey === key && bgCanvas) return;
+    bgKey = key;
+    try {
+      bgCanvas = document.createElement('canvas');
+    } catch (e) { bgCanvas = null; return; }
+    if (!bgCanvas || !bgCanvas.getContext) { bgCanvas = null; return; }
+    const dpr = view.dpr;
+    bgCanvas.width = Math.max(1, Math.round(view.w * dpr));
+    bgCanvas.height = Math.max(1, Math.round(view.h * dpr));
+    const b = bgCanvas.getContext('2d');
+    if (!b) { bgCanvas = null; return; }
+    b.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paintBackdrop(b, view);
+  }
+
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(resize).observe(canvas);
+  }
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 120));
+  resize();
+
+  /* ============================================================
+     ساخت دوباره بازی
+  ============================================================ */
+  function resetBoard() {
+    const cx = Math.floor(COLS / 2);
+    const cy = Math.floor(ROWS / 2) + 3;
+    snake = [
+      { x: cx, y: cy - 1 },
+      { x: cx - 1, y: cy - 1 },
+      { x: cx - 2, y: cy - 1 },
+      { x: cx - 3, y: cy - 1 }
+    ];
+    prevSnake = snake.map(s => ({ x: s.x, y: s.y }));
+    dir = DIRS.right;
+    queue = [];
+    food = { x: cx + 3, y: cy - 1 };
+    bonus = null;
+    score = 0;
+    apples = 0;
+    interval = DIFFS[difficulty].base;
+    acc = 0;
+    particles = [];
+    floaters = [];
+    shake = 0;
+    flash = 0;
+    newRecord = false;
+    updateHud();
+  }
+
+  function startGame() {
+    const cfg = DIFFS[difficulty];
+    const cx = Math.floor(COLS / 2);
+    const cy = Math.floor(ROWS / 2);
+    snake = [
+      { x: cx, y: cy },
+      { x: cx - 1, y: cy },
+      { x: cx - 2, y: cy },
+      { x: cx - 3, y: cy }
+    ];
+    prevSnake = snake.map(s => ({ x: s.x, y: s.y }));
+    dir = DIRS.right;
+    queue = [];
+    score = 0;
+    apples = 0;
+    interval = cfg.base;
+    acc = 0;
+    bonus = null;
+    particles = [];
+    floaters = [];
+    shake = 0;
+    flash = 0;
+    newRecord = false;
+    spawnFood();
+    state = 'playing';
+    overlay.hidden = true;
+    setState();
+    updateHud();
+    sound('start');
+  }
+
+  /* ============================================================
+     منطق بازی
+  ============================================================ */
+  function freeCell(extraTaken) {
+    const taken = new Set();
+    for (const s of snake) taken.add(s.x + ',' + s.y);
+    if (food) taken.add(food.x + ',' + food.y);
+    if (bonus) taken.add(bonus.x + ',' + bonus.y);
+    if (extraTaken) {
+      for (const p of extraTaken) {
+        if (p) taken.add(p.x + ',' + p.y);
+      }
+    }
+    const free = [];
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (!taken.has(x + ',' + y)) free.push({ x: x, y: y });
+      }
+    }
+    if (!free.length) return null;
+    return free[Math.floor(Math.random() * free.length)];
+  }
+
+  function spawnFood() {
+    const cell = freeCell([bonus]);
+    if (cell) {
+      food = cell;
+    } else {
+      food = null;
+      // صفحه پر شده است؛ بازیکن برنده است
+      if (state === 'playing') {
+        state = 'won';
+        newRecord = score > best;
+        if (newRecord) { best = score; store.set('neonSnake.best', best); }
+        setState();
+        updateHud();
+        showWin();
+      }
+    }
+  }
+
+  function spawnBonus() {
+    if (bonus) return;
+    const cell = freeCell([food]);
+    if (!cell) return;
+    bonus = { x: cell.x, y: cell.y, life: BONUS_TTL, max: BONUS_TTL };
+  }
+
+  function turn(nextDir) {
+    if (state !== 'playing') return;
+    const last = queue.length ? queue[queue.length - 1] : dir;
+    if (nextDir.x === -last.x && nextDir.y === -last.y) return;
+    if (nextDir.x === last.x && nextDir.y === last.y) return;
+    if (queue.length >= 2) queue.shift();
+    queue.push(nextDir);
+  }
+
+  function step() {
+    prevSnake = snake.map(s => ({ x: s.x, y: s.y }));
+    if (queue.length) dir = queue.shift();
+
+    let nx = snake[0].x + dir.x;
+    let ny = snake[0].y + dir.y;
+
+    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) {
+      if (!wrap) {
+        endGame('wall');
+        return;
+      }
+      nx = (nx + COLS) % COLS;
+      ny = (ny + ROWS) % ROWS;
+    }
+
+    const willEat = food && nx === food.x && ny === food.y;
+    const body = willEat ? snake : snake.slice(0, -1);
+    for (let i = 0; i < body.length; i++) {
+      if (body[i].x === nx && body[i].y === ny) {
+        endGame('self');
+        return;
+      }
+    }
+
+    snake.unshift({ x: nx, y: ny });
+    if (willEat) {
+      eat();
+    } else {
+      snake.pop();
+    }
+
+    if (bonus && bonus.x === nx && bonus.y === ny) collectBonus();
+  }
+
+  function eat() {
+    score += 10;
+    apples += 1;
+    const cfg = DIFFS[difficulty];
+    interval = Math.max(cfg.min, cfg.base - apples * cfg.step);
+    burst(food.x, food.y, '#ff5b74', 14);
+    addFloater(food.x, food.y, '+۱۰', '#b6ffe0');
+    food = null;
+    spawnFood();
+    if (apples % 4 === 0) spawnBonus();
+    updateHud();
+    sound('eat');
+  }
+
+  function collectBonus() {
+    if (!bonus) return;
+    score += 50;
+    burst(bonus.x, bonus.y, '#ffc857', 22);
+    addFloater(bonus.x, bonus.y, '+۵۰', '#ffe6a4');
+    bonus = null;
+    updateHud();
+    sound('bonus');
+  }
+
+  function endGame(cause) {
+    if (state !== 'playing') return;
+    state = 'over';
+    deathCause = cause;
+    newRecord = score > best;
+    if (newRecord) {
+      best = score;
+      store.set('neonSnake.best', best);
+      bestStat.classList.remove('pop');
+      void bestStat.offsetWidth;
+      bestStat.classList.add('pop');
+    }
+    const head = snake[0] || { x: 10, y: 10 };
+    burst(head.x, head.y, '#ff5b74', 26);
+    burst(head.x, head.y, '#4dffb8', 14);
+    shake = 14;
+    flash = 0.85;
+    sound('die');
+    setState();
+    updateHud();
+    setTimeout(() => {
+      if (state === 'over') {
+        showOver();
+        try { ovBtn.focus({ preventScroll: true }); } catch (e) { ovBtn.focus(); }
+      }
+    }, 420);
+  }
+
+  function pauseGame() {
+    if (state !== 'playing') return;
+    state = 'paused';
+    setState();
+    showPaused();
+    sound('click');
+  }
+
+  function resumeGame() {
+    if (state !== 'paused') return;
+    state = 'playing';
+    overlay.hidden = true;
+    acc = 0;
+    setState();
+    sound('click');
+  }
+
+  function togglePause() {
+    if (state === 'playing') pauseGame();
+    else if (state === 'paused') resumeGame();
+  }
+
+  /* ============================================================
+     رابط کاربری
+  ============================================================ */
+  function setState() {
+    stage.dataset.state = state;
+    document.body.dataset.state = state;
+    const active = state === 'playing' || state === 'paused';
+    setPauseIcons();
+    pauseBtn.disabled = !active;
+  }
+
+  function setPauseIcons() {
+    const icon = state === 'paused' ? '▶' : '⏸';
+    const label = state === 'paused' ? 'ادامه بازی' : 'مکث';
+    pauseBtn.textContent = icon;
+    pauseBtn.setAttribute('aria-label', label);
+    if (centerPause) {
+      centerPause.textContent = icon;
+      centerPause.setAttribute('aria-label', label);
+    }
+  }
+
+  function updateHud() {
+    const recordSoFar = Math.max(best, score);
+    scoreEl.textContent = fa(score);
+    bestEl.textContent = fa(recordSoFar);
+    sideBestEl.textContent = fa(recordSoFar);
+    levelEl.textContent = fa(Math.min(99, 1 + Math.floor(apples / 4)));
+    lengthEl.textContent = fa(snake.length);
+  }
+
+  function showReady() {
+    ovTitle.textContent = 'مار نئون';
+    ovText.innerHTML = 'سیب‌ها را بخور، بلندتر شو و از دیوار و دُم خودت دوری کن.';
+    ovBtn.textContent = 'شروع بازی';
+    ovHint.innerHTML = 'با <kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd><kbd>←</kbd> یا کشیدن انگشت حرکت کن';
+    diffGroup.hidden = false;
+    ovStats.hidden = true;
+    recordRibbon.hidden = true;
+    ovHint.hidden = false;
+    overlay.hidden = false;
+    renderDiff();
+  }
+
+  function showPaused() {
+    ovTitle.textContent = 'بازی متوقف شد';
+    ovText.textContent = 'نفس بگیر؛ هر وقت آماده بودی ادامه بده.';
+    ovBtn.textContent = 'ادامه بازی';
+    diffGroup.hidden = true;
+    ovStats.hidden = true;
+    recordRibbon.hidden = true;
+    ovHint.hidden = true;
+    overlay.hidden = false;
+  }
+
+  function showOver() {
+    const cfg = DIFFS[difficulty];
+    ovTitle.textContent = newRecord ? 'رکورد جدید!' : 'بازی تمام شد';
+    if (newRecord) {
+      ovText.textContent = 'بالاترین امتیازت را زدی. حالا می‌توانی از خودت جلو بزنی؟';
+    } else if (deathCause === 'wall') {
+      ovText.textContent = 'به دیوار خوردی. یک بار دیگر امتحان کن!';
+    } else {
+      ovText.textContent = 'خودت را گاز گرفتی! حواست به دُمت باشد.';
+    }
+    ovScore.textContent = fa(score);
+    ovBest.textContent = fa(best);
+    ovApples.textContent = fa(apples);
+    ovBtn.textContent = 'بازی دوباره';
+    diffGroup.hidden = false;
+    ovStats.hidden = false;
+    recordRibbon.hidden = !newRecord;
+    ovHint.hidden = false;
+    const diffLabel = cfg.label;
+    ovHint.innerHTML = 'سطح <b>' + diffLabel + '</b> · برای شروع دوباره <kbd>R</kbd> را بزن';
+    overlay.hidden = false;
+    renderDiff();
+  }
+
+  function showWin() {
+    ovTitle.textContent = 'برنده شدی!';
+    ovText.textContent = 'تمام صفحه را پر کردی؛ هیچ جای خالی برای مار باقی نماند.';
+    ovScore.textContent = fa(score);
+    ovBest.textContent = fa(best);
+    ovApples.textContent = fa(apples);
+    ovBtn.textContent = 'بازی دوباره';
+    diffGroup.hidden = false;
+    ovStats.hidden = false;
+    recordRibbon.hidden = !newRecord;
+    ovHint.hidden = false;
+    ovHint.innerHTML = 'برای شروع دوباره <kbd>R</kbd> را بزن';
+    overlay.hidden = false;
+    renderDiff();
+  }
+
+  function renderDiff() {
+    const chips = diffGroup.querySelectorAll('[data-diff]');
+    for (const chip of chips) {
+      chip.setAttribute('aria-pressed', chip.dataset.diff === difficulty ? 'true' : 'false');
+    }
+  }
+
+  function renderSound() {
+    soundBtn.textContent = muted ? '🔇' : '🔊';
+    soundBtn.setAttribute('aria-label', muted ? 'صدا خاموش است' : 'صدا روشن است');
+    soundBtn.setAttribute('aria-pressed', muted ? 'false' : 'true');
+  }
+
+  /* ============================================================
+     ذرات و متن‌های شناور
+  ============================================================ */
+  function burst(x, y, color, count) {
+    const n = reducedMotion ? Math.ceil(count / 2) : count;
+    for (let i = 0; i < n; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = rand(0.7, 3);
+      const life = rand(360, 820);
+      particles.push({
+        x: x + 0.5,
+        y: y + 0.5,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: life,
+        max: life,
+        size: rand(0.05, 0.14),
+        color: color
+      });
+    }
+  }
+
+  function addFloater(x, y, text, color) {
+    floaters.push({ x: x + 0.5, y: y + 0.05, text: text, color: color, life: 900, max: 900 });
+  }
+
+  /* ============================================================
+     حلقه بازی
+  ============================================================ */
+  function frame(ts) {
+    const dt = lastTs ? Math.min(ts - lastTs, 120) : 16;
+    lastTs = ts;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  function update(dt) {
+    animT += dt / 1000;
+
+    if (state === 'playing') {
+      acc += dt;
+      if (bonus) {
+        bonus.life -= dt;
+        if (bonus.life <= 0) bonus = null;
+      }
+      if (acc > interval * 2.5) acc = interval;
+      let guard = 0;
+      while (acc >= interval && state === 'playing' && guard < 4) {
+        acc -= interval;
+        step();
+        guard++;
+      }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life -= dt;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      p.x += p.vx * dt / 1000;
+      p.y += p.vy * dt / 1000;
+      p.vx *= 0.988;
+      p.vy = p.vy * 0.988 + 2.2 * dt / 1000;
+    }
+
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      const f = floaters[i];
+      f.life -= dt;
+      if (f.life <= 0) { floaters.splice(i, 1); continue; }
+      f.y -= dt / 1900;
+    }
+
+    shake = Math.max(0, shake - dt * 0.045);
+    flash = Math.max(0, flash - dt / 480);
+  }
+
+  /* ============================================================
+     رسم
+  ============================================================ */
+  function roundRect(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function starPath(cx, cy, outer, inner, points) {
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+      const r = i % 2 === 0 ? outer : inner;
+      const a = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+
+  function paintBackdrop(g, v) {
+    const w = v.w;
+    const h = v.h;
+    const cell = v.cell;
+    const ox = v.ox;
+    const oy = v.oy;
+
+    const bg = g.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#071722');
+    bg.addColorStop(0.55, '#071019');
+    bg.addColorStop(1, '#090e1c');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, w, h);
+
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if ((x + y) % 2 === 0) {
+          g.fillStyle = 'rgba(110,255,205,0.022)';
+          g.fillRect(ox + x * cell, oy + y * cell, cell + 0.5, cell + 0.5);
+        }
+      }
+    }
+    g.strokeStyle = 'rgba(120,240,205,0.05)';
+    g.lineWidth = 1;
+    g.beginPath();
+    for (let i = 1; i < COLS; i++) {
+      const p = Math.round(ox + i * cell) + 0.5;
+      g.moveTo(p, oy);
+      g.lineTo(p, oy + ROWS * cell);
+    }
+    for (let j = 1; j < ROWS; j++) {
+      const p = Math.round(oy + j * cell) + 0.5;
+      g.moveTo(ox, p);
+      g.lineTo(ox + COLS * cell, p);
+    }
+    g.stroke();
+    g.strokeStyle = 'rgba(77,255,184,0.14)';
+    g.strokeRect(ox + 0.5, oy + 0.5, COLS * cell - 1, ROWS * cell - 1);
+  }
+
+  function draw() {
+    const w = view.w;
+    const h = view.h;
+    const cell = view.cell;
+    const ox = view.ox;
+    const oy = view.oy;
+    const dpr = view.dpr;
+
+    ensureBackground();
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    let painted = false;
+    if (bgCanvas) {
+      try {
+        ctx.drawImage(bgCanvas, 0, 0, w, h);
+        painted = true;
+      } catch (e) {
+        bgCanvas = null; // اگر مرورگر از بوم داخلی پشتیبانی نکرد، مستقیم رسم می‌کنیم
+      }
+    }
+    if (!painted) paintBackdrop(ctx, view);
+
+    if (shake > 0.4) {
+      ctx.save();
+      ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    }
+
+    // موجودیت‌ها (داخل کادر بازی کلیپ می‌شوند)
+    ctx.save();
+    ctx.translate(ox, oy);
+    ctx.scale(cell, cell);
+    ctx.beginPath();
+    ctx.rect(0, 0, COLS, ROWS);
+    ctx.clip();
+    drawFood(animT);
+    drawBonus(animT);
+    drawSnake();
+    drawParticles();
+    drawFloaters();
+    ctx.restore();
+
+    if (shake > 0.4) ctx.restore();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // سایه گوشه‌ها
+    const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.28, w / 2, h / 2, Math.max(w, h) * 0.74);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.42)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, w, h);
+
+    if (flash > 0.01) {
+      const ff = Math.min(1, flash);
+      ctx.fillStyle = 'rgba(255,64,96,' + (ff * ff * 0.14).toFixed(3) + ')';
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
+
+  function segmentPos(i, t) {
+    const cur = snake[i];
+    const prev = prevSnake[i] || cur;
+    if (Math.abs(prev.x - cur.x) > 1 || Math.abs(prev.y - cur.y) > 1) {
+      return { x: cur.x, y: cur.y };
+    }
+    return {
+      x: prev.x + (cur.x - prev.x) * t,
+      y: prev.y + (cur.y - prev.y) * t
+    };
+  }
+
+  function drawSnake() {
+    if (!snake.length) return;
+    const n = snake.length;
+    const t = state === 'playing' ? clamp(acc / interval, 0, 1) : 1;
+    const headPos = segmentPos(0, t);
+
+    // در حالت پایان، مار کمی کدر اما خوانا بماند
+    if (state === 'over') ctx.globalAlpha = 0.85;
+
+    // هاله دور سر
+    const hx = headPos.x + 0.5;
+    const hy = headPos.y + 0.5;
+    const glow = ctx.createRadialGradient(hx, hy, 0.1, hx, hy, 1.25);
+    glow.addColorStop(0, 'rgba(77,255,184,0.26)');
+    glow.addColorStop(0.55, 'rgba(77,255,184,0.08)');
+    glow.addColorStop(1, 'rgba(77,255,184,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(hx, hy, 1.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // بدنه: خطوط ضخیم با سرهای گرد برای اتصال نرم بندها
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      pts.push(i === 0 ? headPos : segmentPos(i, t));
+    }
+    const widthAt = (i) => {
+      const k = n === 1 ? 0 : i / (n - 1);
+      const taper = 1 - 0.36 * k;
+      return (i === 0 ? 0.9 : 0.82) * taper;
+    };
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // لایه بیرونی (بدنهٔ اصلی) از دُم به سر
+    for (let i = n - 1; i >= 1; i--) {
+      const a = pts[i];
+      const b = pts[i - 1];
+      const k = n === 1 ? 0 : i / (n - 1);
+      ctx.beginPath();
+      ctx.moveTo(a.x + 0.5, a.y + 0.5);
+      ctx.lineTo(b.x + 0.5, b.y + 0.5);
+      ctx.strokeStyle = mixColor(HEAD_COLOR, TAIL_COLOR, Math.pow(k, 0.9));
+      ctx.lineWidth = widthAt(i);
+      ctx.stroke();
+    }
+
+    // لایهٔ داخلی روشن برای برجستگی
+    for (let i = n - 1; i >= 1; i--) {
+      const a = pts[i];
+      const b = pts[i - 1];
+      const k = n === 1 ? 0 : i / (n - 1);
+      ctx.beginPath();
+      ctx.moveTo(a.x + 0.5, a.y + 0.5);
+      ctx.lineTo(b.x + 0.5, b.y + 0.5);
+      ctx.strokeStyle = mixColor([196, 255, 232], [33, 160, 120], Math.pow(k, 0.9));
+      ctx.lineWidth = widthAt(i) * 0.42;
+      ctx.globalAlpha = 0.55;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // سر
+    roundRect(hx - 0.45, hy - 0.45, 0.9, 0.9, 0.32);
+    ctx.fillStyle = mixColor(HEAD_COLOR, [255, 255, 255], 0.12);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(224,255,246,0.5)';
+    ctx.lineWidth = 0.035;
+    ctx.stroke();
+
+    // چشم‌ها
+    const dx = dir.x;
+    const dy = dir.y;
+    for (const side of [-1, 1]) {
+      const ex = hx + dx * 0.16 - dy * side * 0.19;
+      const ey = hy + dy * 0.16 + dx * side * 0.19;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 0.12, 0, Math.PI * 2);
+      ctx.fillStyle = '#f2fff9';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ex + dx * 0.04, ey + dy * 0.04, 0.058, 0, Math.PI * 2);
+      ctx.fillStyle = '#06251b';
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFood(time) {
+    if (!food) return;
+    const pulse = reducedMotion ? 1 : 1 + Math.sin(time * 4.2) * 0.06;
+    const cx = food.x + 0.5;
+    const cy = food.y + 0.5;
+    const r = 0.3 * pulse;
+
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 2.3);
+    glow.addColorStop(0, 'rgba(255,91,116,0.4)');
+    glow.addColorStop(1, 'rgba(255,91,116,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 2.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff5b74';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.3, cy - r * 0.32, r * 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fill();
+
+    // ساقه
+    ctx.strokeStyle = '#2fd695';
+    ctx.lineWidth = 0.05;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.8);
+    ctx.quadraticCurveTo(cx + 0.04, cy - r * 1.08, cx + 0.02, cy - r * 1.24);
+    ctx.stroke();
+
+    // برگ
+    ctx.save();
+    ctx.translate(cx + 0.075, cy - r * 1.16);
+    ctx.rotate(-0.45);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 0.12, 0.058, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#5bffb0';
+    ctx.fill();
+    ctx.restore();
+    ctx.lineCap = 'butt';
+  }
+
+  function drawBonus(time) {
+    if (!bonus) return;
+    const cx = bonus.x + 0.5;
+    const cy = bonus.y + 0.5;
+    const frac = clamp(bonus.life / bonus.max, 0, 1);
+    const pulse = reducedMotion ? 1 : 1 + Math.sin(time * 6) * 0.07;
+
+    const glow = ctx.createRadialGradient(cx, cy, 0.05, cx, cy, 0.9);
+    glow.addColorStop(0, 'rgba(255,200,87,0.42)');
+    glow.addColorStop(1, 'rgba(255,200,87,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 0.9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // حلقه زمان
+    ctx.beginPath();
+    ctx.arc(cx, cy, 0.43, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+    ctx.strokeStyle = frac < 0.3 ? 'rgba(255,120,120,0.8)' : 'rgba(255,200,87,0.55)';
+    ctx.lineWidth = 0.05;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(reducedMotion ? 0 : time * 0.9);
+    const grad = ctx.createLinearGradient(-0.3, -0.3, 0.3, 0.3);
+    grad.addColorStop(0, '#ffe9a8');
+    grad.addColorStop(1, '#ffb627');
+    starPath(0, 0, 0.3 * pulse, 0.135 * pulse, 5);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,246,214,0.65)';
+    ctx.lineWidth = 0.028;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    for (const p of particles) {
+      const alpha = clamp(p.life / p.max, 0, 1);
+      const r = p.size * (0.35 + alpha * 0.65);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFloaters() {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.direction = 'rtl';
+    for (const f of floaters) {
+      const alpha = clamp(f.life / f.max, 0, 1);
+      ctx.globalAlpha = alpha;
+      ctx.font = '800 0.62px "Vazirmatn", Tahoma, sans-serif';
+      ctx.fillStyle = f.color;
+      ctx.strokeStyle = 'rgba(4,20,14,0.55)';
+      ctx.lineWidth = 0.09;
+      ctx.lineJoin = 'round';
+      const ty = f.y - 0.15 - (1 - alpha) * 0.7;
+      ctx.strokeText(f.text, f.x, ty);
+      ctx.fillText(f.text, f.x, ty);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* ============================================================
+     رویدادها
+  ============================================================ */
+  pauseBtn.addEventListener('click', () => {
+    togglePause();
+    pauseBtn.blur();
+  });
+
+  if (centerPause) {
+    centerPause.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (state === 'ready' || state === 'over' || state === 'won') startGame();
+      else togglePause();
+      centerPause.blur();
+    });
+  }
+
+  soundBtn.addEventListener('click', () => {
+    muted = !muted;
+    store.set('neonSnake.muted', muted ? '1' : '0');
+    renderSound();
+    sound('click');
+    soundBtn.blur();
+  });
+
+  wrapToggle.checked = wrap;
+  wrapToggle.addEventListener('change', () => {
+    wrap = wrapToggle.checked;
+    store.set('neonSnake.wrap', wrap ? '1' : '0');
+    sound('click');
+  });
+
+  diffGroup.addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-diff]');
+    if (!chip) return;
+    difficulty = chip.dataset.diff;
+    store.set('neonSnake.diff', difficulty);
+    renderDiff();
+    if (state === 'ready') {
+      interval = DIFFS[difficulty].base;
+    }
+    if (state === 'over') {
+      ovHint.innerHTML = 'سطح <b>' + DIFFS[difficulty].label + '</b> · برای شروع دوباره <kbd>R</kbd> را بزن';
+    }
+    sound('click');
+  });
+
+  ovBtn.addEventListener('click', () => {
+    if (state === 'paused') resumeGame();
+    else startGame();
+    ovBtn.blur();
+  });
+
+  newGameBtn.addEventListener('click', () => {
+    startGame();
+    newGameBtn.blur();
+  });
+
+  canvas.addEventListener('pointerdown', (event) => {
+    pointerStart = { x: event.clientX, y: event.clientY };
+    if (canvas.setPointerCapture) {
+      try { canvas.setPointerCapture(event.pointerId); } catch (e) {}
+    }
+  });
+
+  canvas.addEventListener('pointerup', (event) => {
+    if (!pointerStart) return;
+    const dx = event.clientX - pointerStart.x;
+    const dy = event.clientY - pointerStart.y;
+    pointerStart = null;
+    if (Math.hypot(dx, dy) < 18) {
+      if (state === 'playing') pauseGame();
+      else if (state === 'paused') resumeGame();
+      return;
+    }
+    if (state === 'ready') startGame();
+    const horizontal = Math.abs(dx) > Math.abs(dy);
+    if (horizontal) turn(dx > 0 ? DIRS.right : DIRS.left);
+    else turn(dy > 0 ? DIRS.down : DIRS.up);
+  });
+
+  canvas.addEventListener('pointercancel', () => { pointerStart = null; });
+
+  const dpadButtons = document.querySelectorAll('[data-dir]');
+  for (const btn of dpadButtons) {
+    const nextDir = DIRS[btn.dataset.dir];
+    const release = () => btn.classList.remove('active');
+    btn.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      if (state === 'ready') startGame();
+      turn(nextDir);
+      btn.classList.add('active');
+    });
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointerleave', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('contextmenu', (event) => event.preventDefault());
+  }
+
+  const KEYMAP = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    w: 'up', a: 'left', s: 'down', d: 'right',
+    W: 'up', A: 'left', S: 'down', D: 'right'
+  };
+
+  let audioUnlocked = false;
+  const unlockOnce = () => {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    unlockAudio();
+  };
+  window.addEventListener('pointerdown', unlockOnce, { passive: true });
+  window.addEventListener('keydown', unlockOnce);
+
+  window.addEventListener('keydown', (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const dirName = KEYMAP[event.key];
+
+    if (dirName) {
+      event.preventDefault();
+      if (state === 'ready') startGame();
+      if (state === 'playing') turn(DIRS[dirName]);
+      return;
+    }
+
+    if (event.key === ' ' || event.key === 'Enter') {
+      const tag = (event.target && event.target.tagName) || '';
+      if (tag === 'BUTTON' || tag === 'INPUT') return;
+      event.preventDefault();
+      if (state === 'ready' || state === 'over' || state === 'won') startGame();
+      else togglePause();
+      return;
+    }
+
+    if (event.key === 'p' || event.key === 'P' || event.key === 'پ') {
+      event.preventDefault();
+      togglePause();
+      return;
+    }
+
+    if (event.key === 'm' || event.key === 'M' || event.key === 'م') {
+      event.preventDefault();
+      muted = !muted;
+      store.set('neonSnake.muted', muted ? '1' : '0');
+      renderSound();
+      sound('click');
+      return;
+    }
+
+    if (event.key === 'r' || event.key === 'R' || event.key === 'ق') {
+      if (state === 'ready') return;
+      event.preventDefault();
+      startGame();
+    }
+  });
+
+  window.addEventListener('keyup', (event) => {
+    if (KEYMAP[event.key]) event.preventDefault();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state === 'playing') pauseGame();
+  });
+
+  window.addEventListener('blur', () => {
+    // روی موبایل، لمس صفحه اغلب باعث blur مصنوعی می‌شود؛ مکث فقط هنگام پنهان‌شدن تب انجام می‌شود
+    if (document.hidden) return;
+    if (state === 'playing') pauseGame();
+  });
+
+  /* ============================================================
+     راه‌اندازی
+  ============================================================ */
+  try {
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load('800 16px "Vazirmatn"').catch(() => {});
+    }
+  } catch (e) { /* فونت اختیاری است */ }
+
+  resetBoard();
+  renderDiff();
+  renderSound();
+  setState();
+  showReady();
+  requestAnimationFrame(frame);
+
+  // دسترسی فقط‌خواندنی برای دیباگ؛ قلاب‌های تغییردهنده فقط با ?debug فعال می‌شوند
+  const debugApi = {
+    get state() { return state; },
+    get score() { return score; },
+    get best() { return best; },
+    get apples() { return apples; },
+    get bonus() { return bonus ? { x: bonus.x, y: bonus.y, life: Math.round(bonus.life) } : null; },
+    get snake() { return snake.map(s => ({ x: s.x, y: s.y })); },
+    get food() { return food ? { x: food.x, y: food.y } : null; },
+    start: startGame,
+    pause: pauseGame,
+    resume: resumeGame
+  };
+  try {
+    if (new URLSearchParams(location.search).has('debug')) {
+      debugApi.turn = (name) => { if (DIRS[name]) turn(DIRS[name]); };
+      debugApi.setFood = (x, y) => {
+        if (Number.isInteger(x) && Number.isInteger(y) && x >= 0 && x < COLS && y >= 0 && y < ROWS) {
+          food = { x: x, y: y };
+        }
+      };
+      debugApi.spawnBonus = () => spawnBonus();
+    }
+  } catch (e) { /* محیط بدون URLSearchParams */ }
+  window.neonSnake = debugApi;
+})();
+</script>
+</body>
+</html>
